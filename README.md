@@ -35,4 +35,4 @@ docs/               Decisiones y notas
 
 ## Estado
 
-Fase 2 (entorno) completada. Siguiente: Fase 3 (sistema de diseño e interfaz de Referencias). Detalles en [docs/decisiones.md](docs/decisiones.md).
+Fase 2 (entorno) completada. Fase 3 (sistema de diseño e interfaz de Referencias) en revisión, con contenido de ejemplo. Siguiente: Fase 4 (base de datos, imágenes y panel de administración). Detalles en [docs/decisiones.md](docs/decisiones.md) y [docs/direccion-visual.md](docs/direccion-visual.md).
