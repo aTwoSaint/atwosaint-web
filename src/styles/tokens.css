@@ -1,0 +1,37 @@
+/*
+ * Tokens de diseño de ATWOSAINT.
+ * Dirección: editorial, minimalista, con guiños a la cultura digital
+ * (índices en monoespaciada, un único acento de "señal").
+ * Para cambiar la identidad basta con editar este archivo.
+ */
+
+:root {
+  --paper: #efeee9;
+  --ink: #111111;
+  --muted: #6b6b66;
+  --line: #d6d5cf;
+  --accent: #ff3b1f;
+
+  --gutter: clamp(1rem, 3vw, 2.5rem);
+  --header-h: 3.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0d0d0c;
+    --ink: #ecebe6;
+    --muted: #8f8f88;
+    --line: #2a2a27;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
