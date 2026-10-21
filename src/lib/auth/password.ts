@@ -31,9 +31,6 @@ export async function hashPassword(password: string): Promise<string> {
   return `${salt.toString("hex")}:${key.toString("hex")}`;
 }
 
-/** Hash ficticio para gastar el mismo tiempo cuando el correo no coincide. */
-const DUMMY = `${"00".repeat(SALT_BYTES)}:${"00".repeat(KEYLEN)}`;
-
 export async function verifyPassword(
   password: string,
   stored: string,
@@ -44,8 +41,4 @@ export async function verifyPassword(
   if (expected.length !== KEYLEN) return false;
   const actual = await derive(password, Buffer.from(saltHex, "hex"));
   return timingSafeEqual(actual, expected);
-}
-
-export async function burnPasswordCheck(password: string): Promise<void> {
-  await verifyPassword(password, DUMMY);
 }

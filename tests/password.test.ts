@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  burnPasswordCheck,
-  hashPassword,
-  verifyPassword,
-} from "@/lib/auth/password";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
 
 describe("contraseñas", () => {
   it("genera el formato esperado por ADMIN_PASSWORD_HASH", async () => {
@@ -26,9 +22,5 @@ describe("contraseñas", () => {
   it("rechaza hashes mal formados sin lanzar", async () => {
     expect(await verifyPassword("x", "no-es-un-hash")).toBe(false);
     expect(await verifyPassword("x", "aa:bb")).toBe(false);
-  });
-
-  it("burnPasswordCheck no falla", async () => {
-    await expect(burnPasswordCheck("x")).resolves.toBeUndefined();
   });
 });

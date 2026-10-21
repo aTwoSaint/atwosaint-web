@@ -3,17 +3,8 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getAuthEnv } from "@/lib/config/env";
-import {
-  burnPasswordCheck,
-  verifyPassword,
-} from "@/lib/auth/password";
-import {
-  endSession,
-  requireAdmin,
-  safeEqual,
-  startSession,
-} from "@/lib/auth/session";
+import { checkAdminCredentials } from "@/lib/auth/credentials";
+import { endSession, requireAdmin, startSession } from "@/lib/auth/session";
 import {
   createReferenceSchema,
   idSchema,
@@ -53,17 +44,11 @@ export async function loginAction(
   const generic = { error: "Correo o contraseña incorrectos." };
   if (!parsed.success) return generic;
 
-  const env = getAuthEnv();
-  const emailOk = safeEqual(
-    parsed.data.email.toLowerCase(),
-    env.ADMIN_EMAIL.toLowerCase(),
+  const ok = await checkAdminCredentials(
+    parsed.data.email,
+    parsed.data.password,
   );
-  // Se ejecuta siempre el mismo trabajo, coincida o no el correo.
-  const passwordOk = emailOk
-    ? await verifyPassword(parsed.data.password, env.ADMIN_PASSWORD_HASH)
-    : (await burnPasswordCheck(parsed.data.password), false);
-
-  if (!emailOk || !passwordOk) {
+  if (!ok) {
     await sleep(500);
     return generic;
   }
