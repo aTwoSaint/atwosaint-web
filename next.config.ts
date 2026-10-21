@@ -15,6 +15,16 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  images: {
+    // Solo se optimizan imágenes de nuestro almacén de Vercel Blob.
+    remotePatterns: [
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+    ],
+  },
+  experimental: {
+    // Vercel admite ~4,5 MB por petición; dejamos margen para el formulario.
+    serverActions: { bodySizeLimit: "4400kb" },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
