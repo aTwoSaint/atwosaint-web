@@ -82,7 +82,7 @@ export default async function AdminPage() {
                     <input type="hidden" name="id" value={item.id} />
                     <ConfirmButton
                       message={`¿Borrar «${item.title}» y sus imágenes? No se puede deshacer.`}
-                      className={`${small} text-accent`}
+                      className={`${small} text-accent-ink`}
                     >
                       Borrar
                     </ConfirmButton>

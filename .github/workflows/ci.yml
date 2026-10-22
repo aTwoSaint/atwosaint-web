@@ -27,3 +27,25 @@ jobs:
       - run: npm run build
       # Solo dependencias de producción; las de desarrollo se revisan aparte.
       - run: npm audit --omit=dev --audit-level=high
+
+  e2e:
+    # Accesibilidad (axe), responsive, cabeceras y flujo de acceso en un Chromium real.
+    runs-on: ubuntu-latest
+    env:
+      USE_SAMPLE_DATA: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7

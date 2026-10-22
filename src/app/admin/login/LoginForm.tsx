@@ -5,7 +5,7 @@ import { loginAction } from "../actions";
 import type { ActionState } from "@/features/references/schema";
 
 const field =
-  "w-full border border-line bg-transparent px-3 py-2 text-sm outline-none focus:border-ink";
+  "w-full border border-muted bg-transparent px-3 py-2 text-sm outline-none focus:border-ink";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState<ActionState, FormData>(
@@ -23,6 +23,7 @@ export function LoginForm() {
           name="email"
           type="email"
           autoComplete="username"
+          defaultValue={state.values?.email}
           required
           className={field}
         />
@@ -40,7 +41,7 @@ export function LoginForm() {
         />
       </label>
       {state.error ? (
-        <p role="alert" className="text-sm text-accent">
+        <p role="alert" className="text-sm text-accent-ink">
           {state.error}
         </p>
       ) : null}

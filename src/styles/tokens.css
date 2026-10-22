@@ -11,6 +11,8 @@
   --muted: #6b6b66;
   --line: #d6d5cf;
   --accent: #ff3b1f;
+  /* Rojo para TEXTO pequeño: 5,0:1 sobre el papel claro (el acento puro da 3,1:1). */
+  --accent-ink: #c42410;
 
   --gutter: clamp(1rem, 3vw, 2.5rem);
   --header-h: 3.5rem;
@@ -22,6 +24,7 @@
     --ink: #ecebe6;
     --muted: #8f8f88;
     --line: #2a2a27;
+    --accent-ink: #ff3b1f;
   }
 }
 
@@ -31,6 +34,7 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
 
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;

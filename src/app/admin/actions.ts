@@ -41,7 +41,12 @@ export async function loginAction(
     email: formData.get("email"),
     password: formData.get("password"),
   });
-  const generic = { error: "Correo o contraseña incorrectos." };
+  // Se conserva el correo escrito (React vacía el formulario tras cada envío); la contraseña, nunca.
+  const typedEmail = formData.get("email");
+  const generic: ActionState = {
+    error: "Correo o contraseña incorrectos.",
+    values: { email: typeof typedEmail === "string" ? typedEmail.slice(0, 254) : "" },
+  };
   if (!parsed.success) return generic;
 
   const ok = await checkAdminCredentials(
