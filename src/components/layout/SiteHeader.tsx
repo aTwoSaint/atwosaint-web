@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminLink } from "./AdminLink";
 
 export function SiteHeader() {
   return (
@@ -12,7 +13,7 @@ export function SiteHeader() {
           <span aria-hidden className="inline-block size-2 bg-accent" />
           ATWOSAINT
         </Link>
-        <nav aria-label="Principal">
+        <nav aria-label="Principal" className="flex items-center gap-6">
           <Link
             href="/"
             aria-current="page"
@@ -20,6 +21,7 @@ export function SiteHeader() {
           >
             Referencias
           </Link>
+          <AdminLink />
         </nav>
       </div>
     </header>

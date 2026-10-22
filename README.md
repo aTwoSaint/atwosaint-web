@@ -16,7 +16,8 @@ npm install
 npm run dev        # http://localhost:3000
 npm run lint
 npm run typecheck
-npm run build
+npm test
+npm run build      # en local, sin base de datos: USE_SAMPLE_DATA=1 npm run build
 ```
 
 Requiere Node.js 22. Copia `.env.example` a `.env.local` cuando se necesiten variables.
@@ -27,7 +28,7 @@ Requiere Node.js 22. Copia `.env.example` a `.env.local` cuando se necesiten var
 src/app/            Rutas
 src/components/     Componentes (ui/ genéricos, references/ específicos)
 src/features/       Lógica por funcionalidad
-src/lib/            Datos, validación y configuración
+src/lib/            Datos, base de datos, autenticación, imágenes y configuración
 src/styles/         Tokens de diseño
 tests/              Pruebas
 docs/               Decisiones y notas
@@ -35,4 +36,4 @@ docs/               Decisiones y notas
 
 ## Estado
 
-Fase 2 (entorno) completada. Fase 3 (sistema de diseño e interfaz de Referencias) en revisión, con contenido de ejemplo. Siguiente: Fase 4 (base de datos, imágenes y panel de administración). Detalles en [docs/decisiones.md](docs/decisiones.md) y [docs/direccion-visual.md](docs/direccion-visual.md).
+Fases 2 y 3 completadas. Fase 4 (base de datos, imágenes y panel `/admin`) implementada y pendiente de puesta en marcha: ver [docs/fase-4-puesta-en-marcha.md](docs/fase-4-puesta-en-marcha.md). Más detalles en [docs/decisiones.md](docs/decisiones.md) y [docs/direccion-visual.md](docs/direccion-visual.md).

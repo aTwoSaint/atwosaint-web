@@ -10,6 +10,9 @@ Fecha: 13/10/2026.
 | Imágenes | Vercel Blob (Cloudflare R2 descartado: pide tarjeta) |
 | Administración | Una sola cuenta de administrador; ruta privada `/admin` con formulario para añadir referencias (imagen, título, descripción) |
 | Hosting | Vercel Hobby mientras la web sea personal |
+| Acceso a datos | Drizzle ORM sobre el driver HTTP de Neon; una única capa en `src/lib/data` |
+| Autenticación | Una cuenta (correo y hash scrypt en variables de entorno), sesión JWT firmada en cookie `HttpOnly`/`SameSite=strict`; comprobada en `proxy.ts`, en cada página y en cada acción |
+| Imágenes | Se validan por contenido, se recomprimen a WebP y se eliminan metadatos antes de subirlas |
 | Dirección visual | Propia, inspirada en las referencias, sin copiar su identidad; se propone en la Fase 3 |
 
 ## Avisos
