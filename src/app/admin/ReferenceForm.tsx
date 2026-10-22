@@ -5,12 +5,12 @@ import { createReferenceAction } from "./actions";
 import type { ActionState } from "@/features/references/schema";
 
 const field =
-  "w-full border border-line bg-transparent px-3 py-2 text-sm outline-none focus:border-ink";
+  "w-full border border-muted bg-transparent px-3 py-2 text-sm outline-none focus:border-ink";
 const label = "font-mono text-xs uppercase tracking-widest text-muted";
 
 function FieldError({ message }: { message?: string }) {
   return message ? (
-    <p role="alert" className="text-sm text-accent">
+    <p role="alert" className="text-sm text-accent-ink">
       {message}
     </p>
   ) : null;
@@ -111,7 +111,7 @@ export function ReferenceForm() {
       </div>
 
       {state.error ? (
-        <p role="alert" className="text-sm text-accent">
+        <p role="alert" className="text-sm text-accent-ink">
           {state.error}
         </p>
       ) : null}

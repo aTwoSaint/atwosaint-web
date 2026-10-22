@@ -16,7 +16,7 @@ export default function Error({
 
   return (
     <main className="flex flex-1 flex-col items-start justify-center gap-6 px-[var(--gutter)] py-24">
-      <p className="font-mono text-xs uppercase tracking-widest text-accent">
+      <p className="font-mono text-xs uppercase tracking-widest text-accent-ink">
         Error
       </p>
       <h1 className="text-2xl font-medium">Algo no ha salido bien.</h1>

@@ -9,6 +9,14 @@ const securityHeaders = [
     value: "camera=(), microphone=(), geolocation=()",
   },
   {
+    // Solo directivas que no afectan a scripts ni estilos (Next usa scripts en línea y una
+    // CSP estricta con nonce obligaría a renderizar todo bajo demanda). Frena clickjacking,
+    // <base> inyectado, formularios hacia otros sitios y plugins.
+    key: "Content-Security-Policy",
+    value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+  },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  {
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains",
   },
