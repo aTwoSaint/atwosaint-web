@@ -99,3 +99,48 @@ describe("validación de la configuración", () => {
     expect(() => getSessionSecret()).toThrow(/32 caracteres/);
   });
 });
+
+describe("mensajes de configuración", () => {
+  const saved = {
+    db: process.env.DATABASE_URL,
+    env: process.env.VERCEL_ENV,
+  };
+  afterEach(() => {
+    if (saved.db === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = saved.db;
+    if (saved.env === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = saved.env;
+  });
+
+  it("nombra la variable cuando no está definida", async () => {
+    delete process.env.DATABASE_URL;
+    const { getDatabaseEnv } = await import("@/lib/config/env");
+    expect(() => getDatabaseEnv()).toThrow(/DATABASE_URL: no está definida/);
+  });
+
+  it("nombra la variable cuando está vacía", async () => {
+    process.env.DATABASE_URL = "";
+    const { getDatabaseEnv } = await import("@/lib/config/env");
+    expect(() => getDatabaseEnv()).toThrow(/DATABASE_URL: está vacía/);
+  });
+
+  it("indica el entorno de Vercel si se conoce", async () => {
+    delete process.env.DATABASE_URL;
+    process.env.VERCEL_ENV = "preview";
+    const { getDatabaseEnv } = await import("@/lib/config/env");
+    expect(() => getDatabaseEnv()).toThrow(/Entorno de Vercel .*: preview/);
+  });
+
+  it("no incluye el valor de la variable en el error", async () => {
+    process.env.AUTH_SECRET = "SECRETO-CORTO";
+    const { getSessionSecret } = await import("@/lib/config/env");
+    try {
+      getSessionSecret();
+      throw new Error("debía fallar");
+    } catch (e) {
+      expect(String(e)).toMatch(/AUTH_SECRET: debe tener al menos 32/);
+      expect(String(e)).not.toContain("SECRETO-CORTO");
+    }
+  });
+});
+
