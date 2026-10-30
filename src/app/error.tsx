@@ -15,19 +15,15 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="flex flex-1 flex-col items-start justify-center gap-6 px-[var(--gutter)] py-24">
-      <p className="font-mono text-xs uppercase tracking-widest text-accent-ink">
+    <main className="wii-stage flex flex-col items-center justify-center gap-5 px-6 text-center">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--w-blue-ink)]">
         Error
       </p>
-      <h1 className="text-2xl font-medium">Algo no ha salido bien.</h1>
-      <p className="max-w-md text-muted">
-        No hemos podido cargar esta página. Inténtalo de nuevo en unos segundos.
+      <h1 className="text-2xl font-semibold">Algo no ha salido bien.</h1>
+      <p className="max-w-md text-[var(--w-muted)]">
+        No hemos podido cargar las referencias. Inténtalo de nuevo en unos segundos.
       </p>
-      <button
-        type="button"
-        onClick={() => retry()}
-        className="border border-ink px-4 py-2 font-mono text-xs uppercase tracking-widest hover:bg-ink hover:text-paper"
-      >
+      <button type="button" onClick={() => retry()} className="wii-pill">
         Reintentar
       </button>
     </main>

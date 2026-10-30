@@ -2,16 +2,13 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <main className="flex flex-1 flex-col items-start justify-center gap-6 px-[var(--gutter)] py-24">
-      <p className="font-mono text-xs uppercase tracking-widest text-accent-ink">
+    <main className="wii-stage flex flex-col items-center justify-center gap-5 px-6 text-center">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--w-blue-ink)]">
         404
       </p>
-      <h1 className="text-2xl font-medium">Esta página no existe.</h1>
-      <Link
-        href="/"
-        className="font-mono text-xs uppercase tracking-widest underline underline-offset-8"
-      >
-        Volver a Referencias
+      <h1 className="text-2xl font-semibold">Esta página no existe.</h1>
+      <Link href="/" className="wii-pill">
+        <span aria-hidden>←</span> Volver al menú
       </Link>
     </main>
   );

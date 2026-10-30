@@ -34,6 +34,12 @@ tests/              Pruebas
 docs/               Decisiones y notas
 ```
 
+## Interfaz pública («menú de canales»)
+
+Intro a pantalla completa → menú de canales 4×3 paginado con las referencias reales → ficha. Barra inferior permanente (menú, fecha en español, contacto) y cursor propio en dispositivos con puntero fino. Es solo capa de presentación (`src/app/(wii)`, `src/components/wii`, `src/styles/wii.css`); la administración (`/admin`) conserva su UI funcional.
+
+Contacto (opcional): define `CONTACT_EMAIL` y/o `CONTACT_INSTAGRAM_URL` en Vercel. Sin ellas, el panel de Contacto indica que aún no hay datos. Para probar la paginación en CI se usa `SAMPLE_COUNT=14` (solo con `USE_SAMPLE_DATA=1`).
+
 ## Estado
 
 Fases 2 y 3 completadas. Fase 4 (base de datos, imágenes y panel `/admin`) implementada y pendiente de puesta en marcha: ver [docs/fase-4-puesta-en-marcha.md](docs/fase-4-puesta-en-marcha.md). Más detalles en [docs/decisiones.md](docs/decisiones.md) y [docs/direccion-visual.md](docs/direccion-visual.md).

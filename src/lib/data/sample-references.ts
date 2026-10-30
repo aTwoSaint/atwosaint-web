@@ -16,7 +16,7 @@ function img(id: string, variant: "a" | "b", alt: string): ReferenceImage {
 
 const now = "2026-10-13T12:00:00.000Z";
 
-export const sampleReferences: Reference[] = [
+const baseReferences: Reference[] = [
   {
     id: "1",
     slug: "estudio-de-forma-001",
@@ -87,3 +87,27 @@ export const sampleReferences: Reference[] = [
     updatedAt: now,
   },
 ];
+
+/**
+ * Solo para pruebas (USE_SAMPLE_DATA=1): SAMPLE_COUNT=14 amplía el ejemplo con copias
+ * numeradas para probar la paginación. Nunca se usa con la base de datos real.
+ */
+function withExtra(base: Reference[]): Reference[] {
+  const wanted = Number(process.env.SAMPLE_COUNT);
+  if (!Number.isInteger(wanted) || wanted <= base.length) return base;
+  const extra = Array.from({ length: Math.min(wanted, 60) - base.length }, (_, i) => {
+    const n = base.length + i + 1;
+    const src = base[i % base.length];
+    const id = String(n).padStart(3, "0");
+    return {
+      ...src,
+      id: String(n),
+      slug: `estudio-de-forma-${id}`,
+      title: `Estudio de forma ${id}`,
+      sortOrder: n,
+    };
+  });
+  return [...base, ...extra];
+}
+
+export const sampleReferences: Reference[] = withExtra(baseReferences);

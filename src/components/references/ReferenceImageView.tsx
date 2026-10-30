@@ -6,10 +6,11 @@ type Props = {
   sizes: string;
   priority?: boolean;
   className?: string;
+  onError?: () => void;
 };
 
 /**
- * Imagen de referencia con proporción fija 4:5 y recorte controlado.
+ * Imagen de referencia que rellena su contenedor (la proporción la fija el contenedor) con recorte controlado.
  * Los SVG de ejemplo no pasan por el optimizador; las imágenes reales sí.
  */
 export function ReferenceImageView({
@@ -17,6 +18,7 @@ export function ReferenceImageView({
   sizes,
   priority = false,
   className = "",
+  onError,
 }: Props) {
   return (
     <Image
@@ -26,6 +28,7 @@ export function ReferenceImageView({
       height={image.height}
       sizes={sizes}
       priority={priority}
+      onError={onError}
       unoptimized={image.src.endsWith(".svg")}
       className={`absolute inset-0 size-full object-cover ${className}`}
     />
