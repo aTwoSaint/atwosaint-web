@@ -177,13 +177,13 @@ test.describe("menú de canales", () => {
     });
   }
 
-  test("escritorio: 4 × 3 canales entran sin desplazamiento y la barra no los tapa", async ({ browser }) => {
+  test("escritorio: 4 × 3 huecos entran sin desplazamiento y la barra no los tapa", async ({ browser }) => {
     const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
     const page = await context.newPage();
     await page.goto("/", { waitUntil: "networkidle" });
-    await expect(channels(page)).toHaveCount(12);
+    await expect(page.locator(".wii-grid > li")).toHaveCount(12);
     await page.waitForTimeout(1500); // fin de la entrada escalonada
-    const boxes = await channels(page).evaluateAll((els) =>
+    const boxes = await page.locator(".wii-grid > li").evaluateAll((els) =>
       els.map((e) => {
         const r = e.getBoundingClientRect();
         return { top: Math.round(r.top), bottom: r.bottom };
@@ -195,20 +195,24 @@ test.describe("menú de canales", () => {
     await context.close();
   });
 
-  test("las referencias salen de los datos (14): página 1 con 12 y página 2 con 2, sin relleno falso", async ({ browser }) => {
+  test("las referencias salen de los datos (14): 11 + disco en la página 1 y 3 + huecos vacíos en la 2", async ({ browser }) => {
     const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
     const page = await context.newPage();
     await page.goto("/", { waitUntil: "networkidle" });
     await expect(channels(page).first().locator("a")).toHaveText("Estudio de forma 001");
     await expect(page.getByRole("button", { name: "Página anterior" })).toHaveCount(0);
+    await expect(channels(page)).toHaveCount(11);
+    await expect(page.locator(".wii-grid > li")).toHaveCount(12);
     await page.getByRole("button", { name: "Página siguiente" }).click();
-    await expect(channels(page)).toHaveCount(2);
-    await expect(channels(page).first().locator("a")).toHaveText("Estudio de forma 013");
+    await expect(channels(page)).toHaveCount(3);
+    await expect(page.locator(".wii-slot--empty")).toHaveCount(9); // huecos vacíos, nunca referencias falsas
+    await expect(page.locator(".wii-slot--disc")).toHaveCount(0);
+    await expect(channels(page).first().locator("a")).toHaveText("Estudio de forma 012");
     await expect(page.getByRole("button", { name: "Página siguiente" })).toHaveCount(0);
     await page.keyboard.press("ArrowLeft");
-    await expect(channels(page)).toHaveCount(12);
+    await expect(channels(page)).toHaveCount(11);
     await page.keyboard.press("ArrowRight");
-    await expect(channels(page)).toHaveCount(2);
+    await expect(channels(page)).toHaveCount(3);
     await context.close();
   });
 
@@ -218,14 +222,31 @@ test.describe("menú de canales", () => {
     await page.goto("/", { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Página siguiente" }).click();
     await channels(page).first().locator("a").click();
-    await expect(page).toHaveURL(/estudio-de-forma-013$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Estudio de forma 013");
+    await expect(page).toHaveURL(/estudio-de-forma-012$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Estudio de forma 012");
     await expect(page.locator(".wii-detail__text")).not.toBeEmpty();
-    await expect(page.locator(".wii-detail__meta")).toContainText("Composición");
+    await expect(page.locator(".wii-detail__meta")).toContainText("Estudio");
     await page.getByRole("link", { name: /Volver al menú/ }).click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(channels(page)).toHaveCount(2);
+    await expect(channels(page)).toHaveCount(3);
     await context.close();
+  });
+
+  test("el primer hueco es un disco que gira, decorativo y fijo en su sitio", async ({ browser }) => {
+    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
+    const page = await context.newPage();
+    await page.goto("/", { waitUntil: "networkidle" });
+    const first = page.locator(".wii-grid > li").first();
+    await expect(first).toHaveClass(/wii-slot--disc/);
+    await expect(first).toHaveAttribute("aria-hidden", "true");
+    await expect(first.locator("a, button")).toHaveCount(0);
+    await expect(first.locator(".wii-cd")).toHaveCSS("animation-name", "wii-cd-spin");
+    await context.close();
+    const quiet = await seenContext(browser, { reducedMotion: "reduce" });
+    const p2 = await quiet.newPage();
+    await p2.goto("/", { waitUntil: "networkidle" });
+    await expect(p2.locator(".wii-cd")).toHaveCSS("animation-name", "none");
+    await quiet.close();
   });
 
   test("el enlace se llama como el título visible (WCAG 2.5.3) y un clic en la imagen abre la ficha", async ({ browser }) => {
@@ -331,6 +352,24 @@ test.describe("barra inferior", () => {
     expect(shown).toBe(expected);
     expect(shown).toMatch(/^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo), \d{1,2} de [a-záéíóú]+$/);
     await expect(page.locator(".wii-date__time")).toHaveText(/^\d{2}:\d{2}$/);
+    await context.close();
+  });
+
+  test("Menú (casa) y Contacto (postal) son botones circulares con icono", async ({ browser }) => {
+    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
+    const page = await context.newPage();
+    await page.goto("/", { waitUntil: "networkidle" });
+    for (const name of ["Menú", "Contacto"]) {
+      const orb = page.getByRole("button", { name, exact: true });
+      await expect(orb.locator("svg")).toHaveCount(1);
+      const box = (await orb.boundingBox())!;
+      expect(Math.abs(box.width - box.height)).toBeLessThan(1);
+      await expect(orb).toHaveCSS("border-radius", /999px|50%/);
+    }
+    const left = (await page.getByRole("button", { name: "Menú", exact: true }).boundingBox())!;
+    const right = (await page.getByRole("button", { name: "Contacto", exact: true }).boundingBox())!;
+    expect(left.x).toBeLessThan(100);
+    expect(right.x + right.width).toBeGreaterThan(1340);
     await context.close();
   });
 

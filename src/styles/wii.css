@@ -14,21 +14,19 @@
   --w-blue-ink: #0b6aa6; /* texto azul: 5,5:1 sobre blanco */
   --w-blue-soft: #e6f5fd;
   --w-radius: 1.1rem;
-  --bar-h: calc(4rem + env(safe-area-inset-bottom, 0px));
+  --bar-h: calc(6.75rem + env(safe-area-inset-bottom, 0px));
   --w-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 html:has(.wii-stage) {
-  background: #e4e5e7;
+  background: #dfe1e4;
 }
 
 .wii-stage {
   color-scheme: light;
   min-height: 100dvh;
   /* Gris característico de la consola: claro arriba, algo más profundo abajo, con brillo azul tenue. */
-  background:
-    radial-gradient(110% 40% at 50% 108%, rgb(54 179 238 / 0.16), transparent 70%),
-    linear-gradient(180deg, #f7f7f8 0%, #e6e7e9 55%, #d5d7da 100%);
+  background: linear-gradient(180deg, #f7f7f8 0%, #eceded 50%, #dfe1e4 100%);
   color: var(--w-text);
   font-family: var(--font-sans);
   transition: filter 0.7s var(--w-ease);
@@ -407,61 +405,80 @@ html[data-intro="active"] .wii-channel { animation: none; opacity: 0; }
   inset: auto 0 0 0;
   z-index: 60;
   height: var(--bar-h);
-  padding: 0 clamp(0.75rem, 2vw, 1.5rem) env(safe-area-inset-bottom, 0px);
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(180deg, #f1f2f3 0%, #dcdee1 100%);
-  border-top: 1px solid #c3c7cb;
-  box-shadow: 0 -10px 30px -18px rgb(54 179 238 / 0.55);
   color: var(--w-text);
   font-family: var(--font-sans);
   color-scheme: light;
+  filter: drop-shadow(0 -6px 14px rgb(54 179 238 / 0.22));
 }
-.wii-bar__left { justify-self: start; }
-.wii-bar__right { justify-self: end; }
-.wii-bar__btn {
-  display: inline-flex;
+.wii-bar__shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.wii-bar__center {
+  position: absolute;
+  inset: 0 6rem;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.55rem;
-  min-height: 2.75rem;
-  padding: 0 1.1rem;
-  border-radius: 999px;
-  border: 1px solid var(--w-line);
-  background: #fff;
-  color: var(--w-text);
-  font-size: 0.85rem;
+  pointer-events: none;
+}
+.wii-bar__brand {
+  margin: 1.25rem 0 0;
+  font-size: 1.05rem;
   font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 8px -3px rgb(30 60 90 / 0.25);
-  transition: transform 0.2s var(--w-ease), box-shadow 0.2s ease, border-color 0.2s ease;
-}
-.wii-bar__btn:hover,
-.wii-bar__btn[aria-expanded="true"] {
-  border-color: var(--w-blue);
-  box-shadow: 0 0 0 3px rgb(54 179 238 / 0.3), 0 0 16px rgb(54 179 238 / 0.3);
-}
-.wii-bar__btn:active { transform: scale(0.96); }
-.wii-bar__icon {
-  width: 1.1rem;
-  height: 1.1rem;
-  border-radius: 999px;
-  background: radial-gradient(circle at 35% 35%, #bfe8fb, var(--w-blue));
+  letter-spacing: 0.28em;
+  color: #0a5d92;
+  text-transform: uppercase;
 }
 .wii-date {
-  text-align: center;
-  line-height: 1.15;
-  min-width: 0;
+  margin-top: auto;
+  margin-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-weight: 600;
+  color: #3e4b55;
+  white-space: nowrap;
 }
-.wii-date__day { font-size: 0.95rem; font-weight: 600; }
-.wii-date__time { font-size: 0.75rem; color: var(--w-muted); font-variant-numeric: tabular-nums; }
+.wii-date__day { font-size: 1rem; }
+.wii-date__time { font-size: 0.85rem; font-variant-numeric: tabular-nums; color: #55636d; }
 .wii-date__short { display: none; }
+
+.wii-orb {
+  position: absolute;
+  bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px));
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 3px solid #86d2f3;
+  background: radial-gradient(circle at 35% 28%, #fff 0%, #eceef0 62%, #d3d6da 100%);
+  color: #6d7a85;
+  cursor: pointer;
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.55), 0 8px 16px -8px rgb(30 60 90 / 0.5);
+  transition: transform 0.2s var(--w-ease), box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.wii-orb--left { left: clamp(0.75rem, 3vw, 2.5rem); }
+.wii-orb--right { right: clamp(0.75rem, 3vw, 2.5rem); }
+.wii-orb:hover,
+.wii-orb[aria-expanded="true"] {
+  transform: scale(1.06);
+  border-color: var(--w-blue);
+  color: var(--w-blue-ink);
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.6), 0 0 20px rgb(54 179 238 / 0.55);
+}
+.wii-orb:active { transform: scale(0.95); }
 @media (max-width: 520px) {
+  .wii-bar__center { inset: 0 4.6rem; }
+  .wii-orb { width: 3.5rem; height: 3.5rem; }
   .wii-date__long { display: none; }
   .wii-date__short { display: inline; }
-  .wii-bar__btn { padding: 0 0.85rem; }
-  .wii-bar__label--hide-sm { display: none; }
+  .wii-bar__brand { font-size: 0.85rem; letter-spacing: 0.2em; }
 }
 
 .wii-panel {
@@ -594,4 +611,75 @@ html.wii-cursor-on .wii-intro { cursor: none; }
     -webkit-box-orient: vertical;
     white-space: normal;
   }
+}
+
+/* ───────── Huecos fijos y disco ───────── */
+.wii-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  border-radius: var(--w-radius);
+  animation: wii-channel-in 0.5s var(--w-ease) both;
+}
+@media (max-width: 1023px) {
+  .wii-slot { aspect-ratio: 4 / 3.5; }
+}
+html[data-intro="active"] .wii-slot { animation: none; opacity: 0; }
+.wii-slot--empty {
+  border: 1px solid #cfd3d8;
+  background: linear-gradient(180deg, #e9eaec, #dfe1e4);
+  box-shadow: inset 0 2px 5px rgb(30 50 70 / 0.12), inset 0 0 0 2px rgb(255 255 255 / 0.35);
+}
+.wii-slot--disc {
+  border: 1px solid var(--w-line);
+  background: linear-gradient(180deg, #fff 55%, #eef0f2 100%);
+  box-shadow: 0 1px 2px rgb(30 60 90 / 0.06), 0 6px 14px -8px rgb(30 60 90 / 0.18);
+}
+.wii-cd {
+  position: relative;
+  height: 68%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: conic-gradient(from 0deg, #f6f7f9, #c4cad1, #fbfcfd, #aeb5be, #f6f7f9 50%, #c4cad1, #fbfcfd, #aeb5be, #f6f7f9);
+  box-shadow: 0 6px 12px -6px rgb(30 60 90 / 0.5), inset 0 0 0 2px rgb(255 255 255 / 0.7);
+  animation: wii-cd-spin 6s linear infinite;
+}
+.wii-cd__ring {
+  position: absolute;
+  inset: 30%;
+  border-radius: 999px;
+  border: 2px solid rgb(255 255 255 / 0.85);
+  box-shadow: 0 0 0 1px rgb(120 130 140 / 0.35);
+}
+.wii-cd__hole {
+  position: absolute;
+  inset: 41%;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px #b4bbc3;
+}
+@keyframes wii-cd-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .wii-cd { animation: none; }
+}
+
+/* Canales y flechas más cercanos al menú de consola */
+.wii-channel {
+  border-color: #cdd2d8;
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.9), 0 1px 2px rgb(30 60 90 / 0.08), 0 6px 14px -8px rgb(30 60 90 / 0.22);
+}
+.wii-arrow {
+  width: 2.6rem;
+  height: 3.4rem;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  filter: drop-shadow(0 2px 3px rgb(30 60 90 / 0.3));
+}
+.wii-arrow:hover { border: 0; box-shadow: none; transform: scale(1.15); filter: drop-shadow(0 0 8px rgb(54 179 238 / 0.8)); }
+@media (max-width: 639px) {
+  .wii-arrow { width: 2.2rem; height: 3rem; }
 }
