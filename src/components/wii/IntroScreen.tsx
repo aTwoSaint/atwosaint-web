@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Wordmark } from "./Wordmark";
+import Image from "next/image";
 
 const STORAGE_KEY = "atw_intro_seen";
 const root = () => document.documentElement;
@@ -47,7 +47,14 @@ export function IntroScreen() {
       className="wii-intro"
       onClick={enter}
     >
-      <Wordmark className="wii-intro__logo" />
+      <Image
+        src="/logo.png"
+        alt="ATWOSAINT"
+        width={667}
+        height={327}
+        priority
+        className="wii-intro__logo"
+      />
       <span className="wii-intro__hint">
         Haz clic para entrar
       </span>

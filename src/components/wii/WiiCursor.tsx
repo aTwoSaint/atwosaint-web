@@ -6,7 +6,7 @@ const INTERACTIVE = "a,button,summary,[role=button],[data-cursor=hover]";
 const TEXT_FIELD = "input,textarea,select";
 
 /**
- * Cursor propio: punto azul luminoso + halo suave. Eventos de puntero y `transform`
+ * Cursor propio: mano dibujada con el índice levantado (dibujo original) + halo azul suave. Eventos de puntero y `transform`
  * (sin re-renderizar React). Solo con puntero fino; el cursor nativo se oculta
  * únicamente después del primer movimiento real, así que si algo falla sigue visible.
  */
@@ -69,7 +69,26 @@ export function WiiCursor() {
   return (
     <div ref={wrap} className="wii-cursor" aria-hidden>
       <div ref={halo} className="wii-cursor__halo"><i /></div>
-      <div ref={dot} className="wii-cursor__dot"><i /></div>
+      <div ref={dot} className="wii-cursor__dot">
+        <i>
+          <svg viewBox="0 0 40 48" fill="none" aria-hidden>
+            <path
+              d="M10 7a4 4 0 0 1 8 0v13.5c1-1.2 3.2-1.5 4.6-.5 1.1-1 3.2-1.1 4.4.1 1.2-.8 3.1-.7 4.1.5 1.4.1 2.6 1.4 2.6 3V33c0 6-3.5 10.5-9 10.5h-5.5c-3.5 0-5.8-1.6-7.6-4.2L5.3 30.6c-1-1.5-.6-3.2.7-4 1.3-.8 3-.5 4 .8L10 28.5z"
+              fill="#fff"
+              stroke="#34424d"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M22.6 20v7M27 20.1v6.6M31.1 20.6v6"
+              stroke="#34424d"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              opacity=".55"
+            />
+          </svg>
+        </i>
+      </div>
     </div>
   );
 }
