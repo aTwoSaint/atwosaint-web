@@ -1,20 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { useAdminHint } from "./useAdminHint";
 
-const subscribe = () => () => {};
-const hasHint = () =>
-  document.cookie.split("; ").some((c) => c === "atw_admin=1");
-
-/**
- * Muestra el acceso al panel solo si existe la cookie de pista del administrador.
- * Es solo comodidad visual: la autorización real se comprueba siempre en el servidor,
- * y así las páginas públicas siguen siendo estáticas.
- */
+/** Muestra el acceso al panel solo si existe la cookie de pista del administrador. */
 export function AdminLink() {
-  const visible = useSyncExternalStore(subscribe, hasHint, () => false);
-  if (!visible) return null;
+  if (!useAdminHint()) return null;
   return (
     <Link
       href="/admin"
