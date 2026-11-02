@@ -16,10 +16,15 @@ export function SiteHeader() {
         <nav aria-label="Principal" className="flex items-center gap-6">
           <Link
             href="/"
-            aria-current="page"
             className="font-mono text-xs uppercase tracking-widest underline-offset-8 hover:underline"
           >
-            Referencias
+            Music
+          </Link>
+          <Link
+            href="/referencias"
+            className="font-mono text-xs uppercase tracking-widest underline-offset-8 hover:underline"
+          >
+            References
           </Link>
           <AdminLink />
         </nav>

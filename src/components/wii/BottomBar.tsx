@@ -113,7 +113,17 @@ export function BottomBar({ contact }: { contact: ContactInfo }) {
           <ul className="wii-panel__list">
             <li>
               <Link href="/" className="wii-panel__link" onClick={close}>
-                Menú principal · Referencias
+                Music
+              </Link>
+            </li>
+            <li>
+              <Link href="/referencias" className="wii-panel__link" onClick={close}>
+                References
+              </Link>
+            </li>
+            <li>
+              <Link href="/about" className="wii-panel__link" onClick={close}>
+                About
               </Link>
             </li>
             {admin ? (

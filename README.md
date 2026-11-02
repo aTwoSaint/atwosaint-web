@@ -34,7 +34,11 @@ tests/              Pruebas
 docs/               Decisiones y notas
 ```
 
-## Interfaz pública («menú de canales»)
+## Music (página de inicio)
+
+`/` es una habitación ilustrada (SVG + CSS propios) con un carrusel 3D en CSS de portadas (sin Three.js: son planos en un anillo, no hace falta WebGL). Catálogo en `src/content/music.ts`: ahora son **6 proyectos de demostración** marcados como tal; para añadir uno real, agrega un objeto y su portada en `public/music`. About: `src/content/about.ts` (texto provisional). Navegación: Music `/` · References `/referencias` · About `/about`.
+
+## Interfaz de References («menú de canales»)
 
 Intro a pantalla completa → menú de canales 4×3 paginado con las referencias reales → ficha. Barra inferior permanente (menú, fecha en español, contacto) y cursor propio en dispositivos con puntero fino. Es solo capa de presentación (`src/app/(wii)`, `src/components/wii`, `src/styles/wii.css`); la administración (`/admin`) conserva su UI funcional.
 

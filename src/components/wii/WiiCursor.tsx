@@ -26,7 +26,9 @@ export function WiiCursor() {
     const frame = () => {
       hx += (x - hx) * (reduced ? 1 : 0.2);
       hy += (y - hy) * (reduced ? 1 : 0.2);
-      halo.current!.style.transform = `translate3d(${hx}px,${hy}px,0)`;
+      // Al desmontar, React suelta las refs antes de ejecutar la limpieza: se protege.
+      if (!halo.current) return;
+      halo.current.style.transform = `translate3d(${hx}px,${hy}px,0)`;
       raf = Math.abs(x - hx) + Math.abs(y - hy) > 0.2 ? requestAnimationFrame(frame) : 0;
     };
 
@@ -34,7 +36,8 @@ export function WiiCursor() {
       if (e.pointerType === "touch") return;
       x = e.clientX;
       y = e.clientY;
-      dot.current!.style.transform = `translate3d(${x}px,${y}px,0)`;
+      if (!dot.current) return;
+      dot.current.style.transform = `translate3d(${x}px,${y}px,0)`;
       if (!on) {
         on = true;
         hx = x;
