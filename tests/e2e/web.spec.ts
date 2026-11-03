@@ -117,7 +117,8 @@ test.describe("pantalla de inicio", () => {
       expect(await page.evaluate(() => (window as unknown as { __marca: number }).__marca)).toBe(42);
 
       // Navegación interna y recarga: la intro no vuelve.
-      await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "References" }).click();
+      await page.getByRole("button", { name: "Menú", exact: true }).click();
+      await page.getByRole("link", { name: "References" }).click();
       await expect(page).toHaveURL(/\/referencias$/);
       await page.getByRole("button", { name: "Menú", exact: true }).click();
       await page.getByRole("link", { name: "Music" }).click();
@@ -135,10 +136,10 @@ test.describe("pantalla de inicio", () => {
     const context = await browser.newContext();
     const page = await context.newPage();
     await page.goto("/", { waitUntil: "networkidle" });
-    expect(await page.locator(".room").evaluate((el) => (el as HTMLElement).inert)).toBe(true);
+    expect(await page.locator(".wii-stage").evaluate((el) => (el as HTMLElement).inert)).toBe(true);
     await page.keyboard.press("Enter");
     await expect(page.locator("html")).toHaveAttribute("data-intro", "seen", { timeout: 3000 });
-    expect(await page.locator(".room").evaluate((el) => (el as HTMLElement).inert)).toBe(false);
+    expect(await page.locator(".wii-stage").evaluate((el) => (el as HTMLElement).inert)).toBe(false);
     await context.close();
   });
 
@@ -152,17 +153,18 @@ test.describe("pantalla de inicio", () => {
     await context.close();
   });
 
-  test("sin JavaScript la sala se ve igualmente", async ({ browser }) => {
+  test("sin JavaScript la web se ve igualmente", async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto("/");
     await expect(page.locator(".wii-intro")).toBeHidden();
-    await expect(page.getByRole("navigation", { name: "Principal" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Menú", exact: true })).toBeVisible();
+    await expect(covers(page).first()).toBeVisible();
     await context.close();
   });
 });
 
-test.describe("Music: la habitación", () => {
+test.describe("Music: display flotante", () => {
   const ringAngle = (page: Page) =>
     page.locator(".music-ring").evaluate((el) => (el as HTMLElement).style.transform);
 
@@ -225,7 +227,6 @@ test.describe("Music: la habitación", () => {
     await expect(dialog).toContainText("Contenido de demostración");
     await expect(dialog.getByRole("heading", { name: "Canciones" })).toBeVisible();
     await expect(dialog.locator("ol li")).toHaveCount(1);
-    await expect(dialog).toContainText("Aún no hay enlaces de escucha.");
     expect(await page.locator(".music").evaluate((el) => (el as HTMLElement).inert)).toBe(true);
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
@@ -253,22 +254,45 @@ test.describe("Music: la habitación", () => {
       await page.goto("/", { waitUntil: "networkidle" });
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
       await expect(page.getByRole("button", { name: "Proyecto siguiente" })).toBeVisible();
-      await expect(page.getByRole("navigation", { name: "Principal" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Menú", exact: true })).toBeVisible();
       await covers(page).nth(1).dispatchEvent("click");
       await expect(page.getByRole("dialog")).toBeVisible();
       await context.close();
     }
   });
 
-  test("la navegación lleva a Music, References y About", async ({ browser }) => {
+  test("el detalle tiene reproductor y botón Comprar que va a BeatStars", async ({ browser }) => {
     const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
     const page = await context.newPage();
     await page.goto("/", { waitUntil: "networkidle" });
-    const nav = page.getByRole("navigation", { name: "Principal" });
-    await nav.getByRole("link", { name: "About" }).click();
+    await covers(page).first().dispatchEvent("click");
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    const play = dialog.getByRole("button", { name: /^Reproducir Pista de ejemplo 1$/ });
+    await expect(play).toBeVisible();
+    await play.click();
+    await expect(dialog.getByRole("button", { name: "Pausar", exact: true })).toBeVisible();
+    await expect(dialog.getByRole("slider", { name: "Posición de la canción" })).toBeVisible();
+    const buy = dialog.getByRole("link", { name: /Comprar en BeatStars/ }).first();
+    await expect(buy).toHaveAttribute("href", /^https:\/\/(www\.)?beatstars\.com/);
+    await expect(buy).toHaveAttribute("target", "_blank");
+    await expect(buy).toHaveAttribute("rel", /noopener/);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await context.close();
+  });
+
+  test("el menú de la barra lleva a Music, References y About", async ({ browser }) => {
+    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
+    const page = await context.newPage();
+    await page.goto("/", { waitUntil: "networkidle" });
+    const menu = page.getByRole("button", { name: "Menú", exact: true });
+    await menu.click();
+    await page.locator("#panel-menu").getByRole("link", { name: "About" }).click();
     await expect(page).toHaveURL(/\/about$/);
     await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
-    await nav.getByRole("link", { name: "References" }).click();
+    await menu.click();
+    await page.locator("#panel-menu").getByRole("link", { name: "References" }).click();
     await expect(page).toHaveURL(/\/referencias$/);
     await expect(channels(page).first()).toBeVisible();
     await context.close();
@@ -573,6 +597,22 @@ test.describe("rutas y cabeceras", () => {
 });
 
 test.describe("administración", () => {
+  test("sin sesión, /admin/music redirige al acceso con un 307", async ({ request }) => {
+    const res = await request.get("/admin/music", { maxRedirects: 0 });
+    expect(res.status()).toBe(307);
+    expect(res.headers().location).toContain("/admin/login");
+  });
+
+  test("sin sesión, la subida de audio se rechaza con 401", async ({ request }) => {
+    const res = await request.post("/api/admin/music/upload", {
+      data: {
+        type: "blob.generate-client-token",
+        payload: { pathname: "musica/audio/x.mp3", clientPayload: null, multipart: false },
+      },
+    });
+    expect(res.status()).toBe(401);
+  });
+
   test("sin sesión, /admin redirige al acceso con un 307", async ({ request }) => {
     const res = await request.get("/admin", { maxRedirects: 0 });
     expect(res.status()).toBe(307);

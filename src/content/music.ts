@@ -1,11 +1,8 @@
 import type { Album } from "@/features/music/types";
 
 /**
- * Catálogo de Music.
- *
- * AHORA MISMO TODO ES CONTENIDO DE DEMOSTRACIÓN (demo: true): no hay música, títulos ni
- * enlaces reales. Para añadir un proyecto real, agrega un objeto a `albums` (y su portada en
- * /public/music) y quita `demo`. Los enlaces de escucha deben ser https.
+ * Contenido de DEMOSTRACIÓN de Music (demo: true), solo para desarrollo y CI (USE_SAMPLE_DATA=1).
+ * La web real lee la música de la base de datos y se gestiona desde /admin/music.
  */
 
 const cover = (n: string, alt: string) => ({
@@ -21,18 +18,18 @@ export const albums: Album[] = [
     slug: "demo-01",
     title: "Proyecto de ejemplo 01",
     artist: "aTwoSaint (demo)",
-    kind: "álbum",
+    kind: "album",
     year: 2026,
     cover: cover("01", "Portada de demostración 01: composición de círculos concéntricos."),
     tracks: [
-      { title: "Pista de ejemplo 1", duration: "3:10" },
-      { title: "Pista de ejemplo 2", duration: "4:17" },
-      { title: "Pista de ejemplo 3", duration: "3:24" },
-      { title: "Pista de ejemplo 4", duration: "4:31" },
+      { id: "t1", title: "Pista de ejemplo 1", duration: "0:02", audioUrl: "/music/demo-tone.wav", buyUrl: "https://www.beatstars.com/" },
+      { id: "t2", title: "Pista de ejemplo 2", duration: "4:17" },
+      { id: "t3", title: "Pista de ejemplo 3", duration: "3:24" },
+      { id: "t4", title: "Pista de ejemplo 4", duration: "4:31" },
     ],
     description:
-      "Contenido de demostración para probar la sala. Sustitúyelo por tu música real.",
-    links: [],
+      "Contenido de demostración. Tu música real se gestiona desde el panel de administración.",
+    buyUrl: "https://www.beatstars.com/",
     demo: true,
   },
   {
@@ -40,17 +37,16 @@ export const albums: Album[] = [
     slug: "demo-02",
     title: "Proyecto de ejemplo 02",
     artist: "aTwoSaint (demo)",
-    kind: "EP",
+    kind: "ep",
     year: 2026,
     cover: cover("02", "Portada de demostración 02: marco, diagonal y un sol."),
     tracks: [
-      { title: "Pista de ejemplo 1", duration: "3:10" },
-      { title: "Pista de ejemplo 2", duration: "4:17" },
-      { title: "Pista de ejemplo 3", duration: "3:24" },
+      { id: "t5", title: "Pista de ejemplo 1", duration: "3:10" },
+      { id: "t6", title: "Pista de ejemplo 2", duration: "4:17" },
+      { id: "t7", title: "Pista de ejemplo 3", duration: "3:24" },
     ],
     description:
-      "Contenido de demostración para probar la sala. Sustitúyelo por tu música real.",
-    links: [],
+      "Contenido de demostración. Tu música real se gestiona desde el panel de administración.",
     demo: true,
   },
   {
@@ -62,11 +58,10 @@ export const albums: Album[] = [
     year: 2026,
     cover: cover("03", "Portada de demostración 03: colinas y luna."),
     tracks: [
-      { title: "Pista de ejemplo 1", duration: "3:10" },
+      { id: "t8", title: "Pista de ejemplo 1", duration: "3:10" },
     ],
     description:
-      "Contenido de demostración para probar la sala. Sustitúyelo por tu música real.",
-    links: [],
+      "Contenido de demostración. Tu música real se gestiona desde el panel de administración.",
     demo: true,
   },
   {
@@ -74,19 +69,18 @@ export const albums: Album[] = [
     slug: "demo-04",
     title: "Proyecto de ejemplo 04",
     artist: "aTwoSaint (demo)",
-    kind: "beat tape",
+    kind: "beat_tape",
     year: 2026,
     cover: cover("04", "Portada de demostración 04: ondas y un cuadrado central."),
     tracks: [
-      { title: "Beat de ejemplo 1", duration: "3:10" },
-      { title: "Beat de ejemplo 2", duration: "4:17" },
-      { title: "Beat de ejemplo 3", duration: "3:24" },
-      { title: "Beat de ejemplo 4", duration: "4:31" },
-      { title: "Beat de ejemplo 5", duration: "3:38" },
+      { id: "t9", title: "Beat de ejemplo 1", duration: "3:10" },
+      { id: "t10", title: "Beat de ejemplo 2", duration: "4:17" },
+      { id: "t11", title: "Beat de ejemplo 3", duration: "3:24" },
+      { id: "t12", title: "Beat de ejemplo 4", duration: "4:31" },
+      { id: "t13", title: "Beat de ejemplo 5", duration: "3:38" },
     ],
     description:
-      "Contenido de demostración para probar la sala. Sustitúyelo por tu música real.",
-    links: [],
+      "Contenido de demostración. Tu música real se gestiona desde el panel de administración.",
     demo: true,
   },
   {
@@ -94,20 +88,19 @@ export const albums: Album[] = [
     slug: "demo-05",
     title: "Proyecto de ejemplo 05",
     artist: "aTwoSaint (demo)",
-    kind: "álbum",
+    kind: "album",
     year: 2026,
     cover: cover("05", "Portada de demostración 05: barras de ecualizador."),
     tracks: [
-      { title: "Pista de ejemplo 1", duration: "3:10" },
-      { title: "Pista de ejemplo 2", duration: "4:17" },
-      { title: "Pista de ejemplo 3", duration: "3:24" },
-      { title: "Pista de ejemplo 4", duration: "4:31" },
-      { title: "Pista de ejemplo 5", duration: "3:38" },
-      { title: "Pista de ejemplo 6", duration: "4:45" },
+      { id: "t14", title: "Pista de ejemplo 1", duration: "3:10" },
+      { id: "t15", title: "Pista de ejemplo 2", duration: "4:17" },
+      { id: "t16", title: "Pista de ejemplo 3", duration: "3:24" },
+      { id: "t17", title: "Pista de ejemplo 4", duration: "4:31" },
+      { id: "t18", title: "Pista de ejemplo 5", duration: "3:38" },
+      { id: "t19", title: "Pista de ejemplo 6", duration: "4:45" },
     ],
     description:
-      "Contenido de demostración para probar la sala. Sustitúyelo por tu música real.",
-    links: [],
+      "Contenido de demostración. Tu música real se gestiona desde el panel de administración.",
     demo: true,
   },
   {
@@ -115,16 +108,15 @@ export const albums: Album[] = [
     slug: "demo-06",
     title: "Proyecto de ejemplo 06",
     artist: "aTwoSaint (demo)",
-    kind: "EP",
+    kind: "ep",
     year: 2026,
     cover: cover("06", "Portada de demostración 06: triángulos superpuestos."),
     tracks: [
-      { title: "Pista de ejemplo 1", duration: "3:10" },
-      { title: "Pista de ejemplo 2", duration: "4:17" },
+      { id: "t20", title: "Pista de ejemplo 1", duration: "3:10" },
+      { id: "t21", title: "Pista de ejemplo 2", duration: "4:17" },
     ],
     description:
-      "Contenido de demostración para probar la sala. Sustitúyelo por tu música real.",
-    links: [],
+      "Contenido de demostración. Tu música real se gestiona desde el panel de administración.",
     demo: true,
   },
 ];

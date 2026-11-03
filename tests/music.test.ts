@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { albums } from "@/content/music";
+import { formatDuration, isBeatStarsUrl, isBlobUrl } from "@/features/music/links";
+import { albumSchema, trackSchema } from "@/features/music/schema";
 import {
   angleForIndex,
   frontIndex,
@@ -10,23 +12,72 @@ import {
   wrap180,
 } from "@/features/music/ring";
 
-describe("catálogo de Music", () => {
+describe("catálogo de demostración", () => {
   it("slugs e ids únicos y portadas existentes", () => {
     expect(new Set(albums.map((a) => a.slug)).size).toBe(albums.length);
     expect(new Set(albums.map((a) => a.id)).size).toBe(albums.length);
     for (const a of albums) {
+      if (!a.cover) continue;
       expect(existsSync(`public${a.cover.src}`), a.cover.src).toBe(true);
       expect(a.cover.alt.length).toBeGreaterThan(5);
     }
   });
-  it("todo contenido de demostración está marcado y sin enlaces inventados", () => {
-    for (const a of albums.filter((x) => x.demo)) {
-      expect(a.links).toEqual([]);
+  it("todo contenido de demostración está marcado", () => {
+    for (const a of albums) {
+      expect(a.demo).toBe(true);
       expect(a.artist).toContain("demo");
     }
   });
-  it("los enlaces de escucha, si los hay, son https", () => {
-    for (const a of albums) for (const l of a.links) expect(new URL(l.url).protocol).toBe("https:");
+  it("los enlaces de compra, si los hay, son de BeatStars", () => {
+    for (const a of albums) {
+      if (a.buyUrl) expect(isBeatStarsUrl(a.buyUrl)).toBe(true);
+      for (const t of a.tracks) if (t.buyUrl) expect(isBeatStarsUrl(t.buyUrl)).toBe(true);
+    }
+  });
+});
+
+describe("enlaces y duraciones", () => {
+  it("solo acepta https de BeatStars", () => {
+    expect(isBeatStarsUrl("https://www.beatstars.com/atwosaint")).toBe(true);
+    expect(isBeatStarsUrl("https://bsta.rs/abc")).toBe(true);
+    expect(isBeatStarsUrl("http://beatstars.com/x")).toBe(false);
+    expect(isBeatStarsUrl("https://beatstars.com.evil.com/x")).toBe(false);
+    expect(isBeatStarsUrl("https://user:pw@beatstars.com/x")).toBe(false);
+    expect(isBeatStarsUrl("javascript:alert(1)")).toBe(false);
+    expect(isBeatStarsUrl("no es url")).toBe(false);
+  });
+  it("solo acepta audio del Blob propio", () => {
+    expect(isBlobUrl("https://abc.public.blob.vercel-storage.com/musica/audio/a.mp3")).toBe(true);
+    expect(isBlobUrl("https://evil.com/a.mp3")).toBe(false);
+    expect(isBlobUrl("http://abc.public.blob.vercel-storage.com/a.mp3")).toBe(false);
+  });
+  it("formatea duraciones", () => {
+    expect(formatDuration(65)).toBe("1:05");
+    expect(formatDuration(0)).toBe("0:00");
+    expect(formatDuration(null)).toBeUndefined();
+    expect(formatDuration(-3)).toBeUndefined();
+  });
+});
+
+describe("validación del admin de música", () => {
+  const base = { title: "Demo", artist: "A", kind: "album", year: "", description: "", buyUrl: "", status: "draft" };
+  it("acepta datos válidos y normaliza vacíos", () => {
+    const r = albumSchema.parse(base);
+    expect(r.buyUrl).toBeUndefined();
+    expect(r.year).toBeUndefined();
+  });
+  it("rechaza enlaces de compra que no son BeatStars", () => {
+    expect(albumSchema.safeParse({ ...base, buyUrl: "https://example.com/x" }).success).toBe(false);
+    expect(albumSchema.safeParse({ ...base, buyUrl: "https://www.beatstars.com/x" }).success).toBe(true);
+  });
+  it("rechaza años absurdos y títulos vacíos", () => {
+    expect(albumSchema.safeParse({ ...base, year: "1500" }).success).toBe(false);
+    expect(albumSchema.safeParse({ ...base, title: " " }).success).toBe(false);
+  });
+  it("valida pistas", () => {
+    const t = { albumId: "5b0f8c1e-6a43-4c7b-9a3e-2d1f4b6c8e90", title: "Pista", url: "https://x", pathname: "musica/audio/a.mp3" };
+    expect(trackSchema.safeParse(t).success).toBe(true);
+    expect(trackSchema.safeParse({ ...t, albumId: "nope" }).success).toBe(false);
   });
 });
 

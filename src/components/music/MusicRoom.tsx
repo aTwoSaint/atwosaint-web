@@ -11,11 +11,12 @@ import {
   shortestDelta,
   wrap180,
 } from "@/features/music/ring";
-import type { Album } from "@/features/music/types";
+import { KIND_LABELS, type Album } from "@/features/music/types";
+import { Triangle } from "@/components/wii/Triangle";
 import { AlbumPanel } from "./AlbumPanel";
 
 const AUTO_SPEED = -7; // grados por segundo
-const TILT = -9; // inclinación del anillo (se ve ligeramente desde arriba)
+const TILT = -8; // inclinación del anillo (se ve ligeramente desde arriba)
 
 /**
  * Carrusel circular en CSS 3D: las portadas flotan en un anillo que gira solo.
@@ -195,15 +196,21 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
                   onFocus={() => goTo(i)}
                   onClick={() => openAlbum(i)}
                 >
-                  <Image
-                    src={album.cover.src}
-                    alt=""
-                    fill
-                    sizes="210px"
-                    unoptimized={album.cover.src.endsWith(".svg")}
-                    draggable={false}
-                    priority={i < 3}
-                  />
+                  {album.cover ? (
+                    <Image
+                      src={album.cover.src}
+                      alt=""
+                      fill
+                      sizes="210px"
+                      unoptimized={album.cover.src.endsWith(".svg")}
+                      draggable={false}
+                      priority={i < 3}
+                    />
+                  ) : (
+                    <span aria-hidden className="music-cover__fallback">
+                      {album.title.trim().charAt(0).toUpperCase() || "♪"}
+                    </span>
+                  )}
                   <span aria-hidden className="music-cover__sheen" />
                 </button>
               </li>
@@ -213,20 +220,20 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
 
         <div className="music-caption">
           <button type="button" className="music-arrow" aria-label="Proyecto anterior" onClick={() => step(-1)}>
-            <span aria-hidden>‹</span>
+            <Triangle dir="left" />
           </button>
           <div className="music-caption__text" aria-live="polite">
             {current.demo ? <p className="music-caption__demo">Demostración</p> : null}
             <h1 className="music-caption__title">{current.title}</h1>
             <p className="music-caption__meta">
-              {current.artist} · {current.kind}
+              {current.artist} · {KIND_LABELS[current.kind]}
             </p>
-            <button ref={openBtn} type="button" className="music-open" onClick={() => openAlbum(front)}>
+            <button ref={openBtn} type="button" className="wii-pill music-open" onClick={() => openAlbum(front)}>
               Ver detalles
             </button>
           </div>
           <button type="button" className="music-arrow" aria-label="Proyecto siguiente" onClick={() => step(1)}>
-            <span aria-hidden>›</span>
+            <Triangle dir="right" />
           </button>
         </div>
       </div>

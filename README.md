@@ -36,7 +36,11 @@ docs/               Decisiones y notas
 
 ## Music (página de inicio)
 
-`/` es una habitación ilustrada (SVG + CSS propios) con un carrusel 3D en CSS de portadas (sin Three.js: son planos en un anillo, no hace falta WebGL). Catálogo en `src/content/music.ts`: ahora son **6 proyectos de demostración** marcados como tal; para añadir uno real, agrega un objeto y su portada en `public/music`. About: `src/content/about.ts` (texto provisional). Navegación: Music `/` · References `/referencias` · About `/about`.
+`/` muestra la música como un display 3D flotante (CSS puro, sin Three.js) sobre el mismo gris del menú Wii. Al abrir un proyecto: reproductor (mp3/wav), lista de canciones y botón **Comprar** (solo enlaces de BeatStars).
+
+**Gestión (sin tocar código):** `/admin/music` → crear/editar/ocultar/eliminar álbumes, subir portada y añadir o borrar canciones mp3/wav (hasta 80 MB, subida directa a Vercel Blob; las URLs del audio son públicas, usa versiones de previsualización si vendes beats). Mientras no haya nada publicado se ven 6 proyectos de **demostración** marcados como tal (`src/content/music.ts`).
+
+**Base de datos:** aplica una vez `drizzle/0001_cloudy_quasimodo.sql` en el editor SQL de Neon (solo añade tablas `albums`/`tracks`; no toca `references`). Navegación: botones de la barra inferior (Menú: Music `/`, References `/referencias`, About `/about`).
 
 ## Interfaz de References («menú de canales»)
 

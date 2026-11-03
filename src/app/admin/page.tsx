@@ -23,6 +23,9 @@ export default async function AdminPage() {
           Administración
         </h1>
         <div className="flex items-baseline gap-6">
+          <Link href="/admin/music" className={small}>
+            Música
+          </Link>
           <Link href="/" className={small}>
             Ver web
           </Link>

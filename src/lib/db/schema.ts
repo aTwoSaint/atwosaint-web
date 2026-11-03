@@ -50,3 +50,55 @@ export const references = pgTable("references", {
     .notNull()
     .defaultNow(),
 });
+
+export const musicKind = pgEnum("music_kind", [
+  "album",
+  "ep",
+  "single",
+  "beat_tape",
+]);
+
+/** Proyectos de música (álbum, EP, single, beat tape). La portada reutiliza la tabla `images`. */
+export const albums = pgTable("albums", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  artist: text("artist").notNull(),
+  kind: musicKind("kind").notNull().default("album"),
+  year: integer("year"),
+  description: text("description"),
+  /** Enlace de compra (BeatStars). Opcional. */
+  buyUrl: text("buy_url"),
+  coverImageId: uuid("cover_image_id").references(() => images.id, {
+    onDelete: "set null",
+  }),
+  sortOrder: integer("sort_order").notNull().default(0),
+  status: referenceStatus("status").notNull().default("draft"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/** Canciones de un proyecto. El audio (mp3/wav) vive en Vercel Blob, nunca en la base de datos. */
+export const tracks = pgTable("tracks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  albumId: uuid("album_id")
+    .notNull()
+    .references(() => albums.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  audioUrl: text("audio_url").notNull(),
+  /** Ruta dentro del almacén; sirve para borrar el archivo. */
+  storageKey: text("storage_key").notNull(),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  durationSeconds: integer("duration_seconds"),
+  /** Enlace de compra propio de esta canción/beat (opcional). */
+  buyUrl: text("buy_url"),
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

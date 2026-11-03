@@ -589,9 +589,9 @@ html.wii-cursor-on .wii-cursor[data-hidden="true"] { opacity: 0; }
 .wii-cursor[data-down="true"] .wii-cursor__dot i { transform: scale(0.88) rotate(-6deg); }
 .wii-cursor[data-down="true"] .wii-cursor__halo i { transform: scale(1.15); }
 
-/* El cursor nativo solo se oculta cuando el propio ya está funcionando. */
+/* El cursor nativo solo se oculta cuando el propio ya está funcionando (y nunca sobre campos de texto ni deslizadores). */
+html.wii-cursor-on .wii-stage :not(input):not(textarea):not(select),
 html.wii-cursor-on .wii-stage,
-html.wii-cursor-on .wii-stage *,
 html.wii-cursor-on .wii-bar,
 html.wii-cursor-on .wii-bar *,
 html.wii-cursor-on .wii-panel,
