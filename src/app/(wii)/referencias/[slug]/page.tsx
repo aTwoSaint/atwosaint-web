@@ -41,7 +41,7 @@ export default async function ReferencePage({
 
   return (
     <main className="wii-detail">
-      <Link href="/" className="wii-pill">
+      <Link href="/referencias" className="wii-pill">
         <span aria-hidden>←</span> Volver al menú
       </Link>
 

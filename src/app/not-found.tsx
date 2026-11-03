@@ -8,7 +8,7 @@ export default function NotFound() {
       </p>
       <h1 className="text-2xl font-semibold">Esta página no existe.</h1>
       <Link href="/" className="wii-pill">
-        <span aria-hidden>←</span> Volver al menú
+        <span aria-hidden>←</span> Volver al inicio
       </Link>
     </main>
   );

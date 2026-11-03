@@ -8,9 +8,10 @@ export type StoredFile = { url: string; pathname: string };
 export async function uploadImage(
   data: Buffer,
   baseName: string,
+  folder = "referencias",
 ): Promise<StoredFile> {
   const { BLOB_READ_WRITE_TOKEN } = getBlobEnv();
-  const result = await put(`referencias/${baseName}.webp`, data, {
+  const result = await put(`${folder}/${baseName}.webp`, data, {
     access: "public",
     contentType: "image/webp",
     addRandomSuffix: true,
@@ -19,7 +20,7 @@ export async function uploadImage(
   return { url: result.url, pathname: result.pathname };
 }
 
-/** Borrado de mejor esfuerzo: un archivo huérfano no debe romper la operación principal. */
+/** Borrado de mejor esfuerzo (sirve para imágenes y audio): un archivo huérfano no debe romper la operación principal. */
 export async function deleteImages(urls: string[]): Promise<void> {
   if (urls.length === 0) return;
   try {

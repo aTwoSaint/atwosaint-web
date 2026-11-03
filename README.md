@@ -34,7 +34,15 @@ tests/              Pruebas
 docs/               Decisiones y notas
 ```
 
-## Interfaz pública («menú de canales»)
+## Music (página de inicio)
+
+`/` muestra la música como un display 3D flotante (CSS puro, sin Three.js) sobre el mismo gris del menú Wii. Al abrir un proyecto: reproductor (mp3/wav), lista de canciones y botón **Comprar** (solo enlaces de BeatStars).
+
+**Gestión (sin tocar código):** `/admin/music` → crear/editar/ocultar/eliminar álbumes, subir portada y añadir o borrar canciones mp3/wav (hasta 80 MB, subida directa a Vercel Blob; las URLs del audio son públicas, usa versiones de previsualización si vendes beats). Mientras no haya nada publicado se ven 6 proyectos de **demostración** marcados como tal (`src/content/music.ts`).
+
+**Base de datos:** aplica una vez `drizzle/0001_cloudy_quasimodo.sql` en el editor SQL de Neon (solo añade tablas `albums`/`tracks`; no toca `references`). Navegación: botones de la barra inferior (Menú: Music `/`, References `/referencias`, About `/about`).
+
+## Interfaz de References («menú de canales»)
 
 Intro a pantalla completa → menú de canales 4×3 paginado con las referencias reales → ficha. Barra inferior permanente (menú, fecha en español, contacto) y cursor propio en dispositivos con puntero fino. Es solo capa de presentación (`src/app/(wii)`, `src/components/wii`, `src/styles/wii.css`); la administración (`/admin`) conserva su UI funcional.
 
