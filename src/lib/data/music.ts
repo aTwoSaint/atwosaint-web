@@ -1,5 +1,6 @@
 import "server-only";
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq, getTableColumns, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { albums as sampleAlbums } from "@/content/music";
 import { isSampleDataMode } from "@/lib/config/env";
 import { getDb } from "@/lib/db";
@@ -17,6 +18,16 @@ export function isMissingTable(error: unknown): boolean {
   return false;
 }
 
+/** ¿Es el error «la columna no existe» (migración aún sin aplicar)? */
+export function isMissingColumn(error: unknown): boolean {
+  let e: unknown = error;
+  for (let i = 0; i < 4 && e; i++) {
+    if ((e as { code?: string }).code === "42703") return true;
+    e = (e as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
 /**
  * Única puerta de acceso a los datos públicos de Music.
  * Con USE_SAMPLE_DATA=1 (desarrollo y CI) sirve contenido de demostración.
@@ -24,16 +35,39 @@ export function isMissingTable(error: unknown): boolean {
  * (en vez de romper la web) y lo deja en el registro.
  */
 export async function getAlbums(): Promise<Album[]> {
-  if (isSampleDataMode()) return sampleAlbums;
+  if (isSampleDataMode()) {
+    // SAMPLE_MUSIC_COUNT permite probar el carrusel con pocos proyectos (p. ej. 1).
+    const n = Number(process.env.SAMPLE_MUSIC_COUNT);
+    return Number.isInteger(n) && n >= 0 ? sampleAlbums.slice(0, n) : sampleAlbums;
+  }
 
   try {
     const db = getDb();
-    const rows = await db
-      .select({ album: albums, cover: images })
+    const hoverImages = alias(images, "hover_images");
+    const base = db
+      .select({ album: albums, cover: images, hover: hoverImages })
       .from(albums)
       .leftJoin(images, eq(albums.coverImageId, images.id))
+      .leftJoin(hoverImages, eq(albums.hoverImageId, hoverImages.id))
       .where(eq(albums.status, "published"))
       .orderBy(asc(albums.sortOrder), asc(albums.createdAt));
+    let rows: Awaited<typeof base>;
+    try {
+      rows = await base;
+    } catch (error) {
+      if (!isMissingColumn(error)) throw error;
+      // La migración 0002 (imagen de hover) aún no está aplicada: se sirve la música sin ella.
+      console.warn("Music: falta la columna hover_image_id (aplica drizzle/0002_*.sql en Neon).");
+      const { hoverImageId: _omit, ...legacy } = getTableColumns(albums);
+      void _omit;
+      const old = await db
+        .select({ album: legacy, cover: images })
+        .from(albums)
+        .leftJoin(images, eq(albums.coverImageId, images.id))
+        .where(eq(albums.status, "published"))
+        .orderBy(asc(albums.sortOrder), asc(albums.createdAt));
+      rows = old.map((r) => ({ album: { ...r.album, hoverImageId: null }, cover: r.cover, hover: null }));
+    }
     if (rows.length === 0) return [];
 
     const trackRows = await db
@@ -42,7 +76,7 @@ export async function getAlbums(): Promise<Album[]> {
       .where(inArray(tracks.albumId, rows.map((r) => r.album.id)))
       .orderBy(asc(tracks.position), asc(tracks.createdAt));
 
-    return rows.map(({ album: a, cover }) => ({
+    return rows.map(({ album: a, cover, hover }) => ({
       id: a.id,
       slug: a.slug,
       title: a.title,
@@ -53,6 +87,9 @@ export async function getAlbums(): Promise<Album[]> {
       buyUrl: a.buyUrl ?? undefined,
       cover: cover
         ? { src: cover.url, alt: cover.alt, width: cover.width, height: cover.height }
+        : undefined,
+      hover: hover
+        ? { src: hover.url, alt: hover.alt, width: hover.width, height: hover.height }
         : undefined,
       tracks: trackRows
         .filter((t) => t.albumId === a.id)

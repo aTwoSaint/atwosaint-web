@@ -39,6 +39,18 @@ export function AlbumForm({ album }: { album?: AdminAlbum }) {
       </label>
 
       <label className="block space-y-1">
+        <span className={label}>
+          Imagen al pasar el cursor {album ? "(opcional, sustituye a la actual)" : "(opcional)"}
+        </span>
+        <input name="hover" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className={field} />
+        <span className="block text-xs text-muted">
+          Sustituye a la portada mientras el cursor está encima. Mejor cuadrada, como la portada.
+          {album?.hoverUrl ? " Este proyecto ya tiene una." : ""}
+        </span>
+        <FieldError message={e.hover} />
+      </label>
+
+      <label className="block space-y-1">
         <span className={label}>Título</span>
         <input name="title" required maxLength={80} defaultValue={val("title", album?.title ?? "")} className={field} />
         <FieldError message={e.title} />

@@ -282,6 +282,44 @@ test.describe("Music: display flotante", () => {
     await context.close();
   });
 
+  test("al pasar el cursor, la portada se sustituye por la imagen de hover del proyecto", async ({ browser }) => {
+    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
+    const page = await context.newPage();
+    await page.goto("/", { waitUntil: "networkidle" });
+    const first = covers(page).first();
+    const hover = first.locator(".music-cover__hover");
+    await expect(hover).toHaveCount(1);
+    await expect(hover).toHaveCSS("opacity", "0");
+    await first.focus();
+    await expect(hover).toHaveCSS("opacity", "1");
+    // Los proyectos sin imagen de hover no tienen capa extra.
+    await expect(covers(page).nth(1).locator(".music-cover__hover")).toHaveCount(0);
+    await context.close();
+  });
+
+  test("móvil: el detalle ocupa la ventana, la página no se desplaza y la barra de reproducción queda dentro", async ({ browser }) => {
+    const context = await seenContext(browser, { viewport: VIEWPORTS.movil, hasTouch: true, isMobile: true });
+    const page = await context.newPage();
+    await page.goto("/", { waitUntil: "networkidle" });
+    await covers(page).first().dispatchEvent("click");
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: /^Reproducir Pista de ejemplo 1$/ }).click();
+    const player = page.locator(".album-player");
+    await expect(player).toBeVisible();
+    const box = (await dialog.boundingBox())!;
+    const pbox = (await player.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(VIEWPORTS.movil.width);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(VIEWPORTS.movil.height);
+    expect(pbox.y + pbox.height).toBeLessThanOrEqual(box.y + box.height);
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe("hidden");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
+    expect(await dialog.evaluate((el) => getComputedStyle(el).overflow)).toBe("hidden");
+    await context.close();
+  });
+
   test("el menú de la barra lleva a Music, References y About", async ({ browser }) => {
     const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
     const page = await context.newPage();

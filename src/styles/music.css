@@ -137,14 +137,20 @@
   color: var(--w-blue-ink);
 }
 .music-caption__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin: 0;
   font-size: clamp(1.4rem, 3.6vw, 2.2rem);
   font-weight: 600;
   line-height: 1.15;
   color: var(--w-text);
 }
-.music-caption__meta { margin: 0.35rem 0 0; font-size: 0.82rem; letter-spacing: 0.08em; color: var(--w-muted); }
-.music-open { margin-top: 0.8rem; }
+.music-caption__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; margin: 0.35rem 0 0; font-size: 0.82rem; letter-spacing: 0.08em; color: var(--w-muted); }
+.music-open { margin-top: 0.8rem; display: inline-flex; }
 .music-arrow {
   flex: none;
   display: grid;
@@ -297,7 +303,7 @@
 .album-play--off:hover { transform: none; border-color: var(--w-line); }
 
 .album-player {
-  margin-top: 1.2rem;
+  grid-column: 1 / -1;
   padding: 0.8rem 1rem;
   border-radius: var(--w-radius);
   background: var(--w-grey);
@@ -329,4 +335,89 @@
 
 @media (max-width: 639px) {
   .music-arrow { width: 2.2rem; }
+}
+
+/* ───────── Huecos «Coming Soon» ───────── */
+.music-cover--soon .music-cover__btn { cursor: default; }
+.music-cover__soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: repeating-linear-gradient(135deg, #e3e6ea 0 14px, #dadee3 14px 28px);
+  box-shadow:
+    inset 0 0 0 3px rgb(255 255 255 / 0.9),
+    inset 0 0 0 5px #cfd5db,
+    0 14px 24px -14px rgb(30 60 90 / 0.4);
+  color: #8b97a3;
+}
+.music-cover__soon-note { font-size: calc(var(--card) * 0.22); line-height: 1; }
+.music-cover__soon-text {
+  font-size: clamp(0.6rem, calc(var(--card) * 0.075), 0.85rem);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.music-cover--soon .music-cover__btn:hover { transform: scale(calc(0.94 + var(--f) * 0.14)); box-shadow: inset 0 0 0 3px rgb(255 255 255 / 0.9), inset 0 0 0 5px #cfd5db, 0 14px 24px -14px rgb(30 60 90 / 0.4); }
+.music-cover__soon-note,
+.music-cover__soon-text { opacity: clamp(0, calc(var(--f, 1) * 2 - 0.4), 1); } /* el texto no se ve «al revés» por detrás */
+.music-cover__soon-note { opacity: clamp(0, calc((var(--f, 1) * 2 - 0.4) * 0.55), 0.55); }
+.music-caption__title--soon { color: var(--w-muted); }
+
+/* ───────── Imagen al pasar el cursor ───────── */
+.music-cover__hover {
+  opacity: 0;
+  object-fit: cover;
+  padding: 3px;
+  border-radius: calc(var(--w-radius) - 3px);
+  background: var(--w-grey);
+  transition: opacity 0.35s ease;
+  z-index: 0;
+}
+.music-cover__btn:hover .music-cover__hover,
+.music-cover__btn:focus-visible .music-cover__hover { opacity: 1; }
+
+/* ───────── Detalle en móvil: ventana fija, sin desplazamiento de la página ───────── */
+html:has(.album-backdrop) { overflow: hidden; overscroll-behavior: none; }
+.album-backdrop { overscroll-behavior: none; touch-action: none; }
+.album-panel__scroll { min-width: 0; }
+
+@media (max-width: 767px) {
+  .album-backdrop {
+    inset: auto;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100dvh;
+    padding: 0.5rem 0.5rem calc(var(--bar-h) + 0.5rem);
+  }
+  .album-panel {
+    grid-template-columns: 5rem minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0.7rem 0.9rem;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    padding: 0.9rem;
+    animation: none;
+  }
+  .album-panel__body { display: contents; }
+  .album-panel__head { min-width: 0; padding-right: 2.4rem; align-self: center; }
+  .album-panel__title { margin-top: 0.15rem; padding-right: 0; font-size: 1.25rem; }
+  .album-panel__artist { margin-top: 0.1rem; font-size: 0.9rem; }
+  .album-panel__demo { margin-bottom: 0.3rem; font-size: 0.58rem; letter-spacing: 0.1em; white-space: nowrap; }
+  .album-panel__scroll {
+    grid-column: 1 / -1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+  .album-panel__scroll > :first-child { margin-top: 0; }
+  .album-player { margin: 0; padding: 0.6rem 0.75rem; }
+  .album-player__row { flex-wrap: wrap; }
+  .album-player__seek { flex: 1 1 100%; order: 9; }
+  .album-player__now { margin-bottom: 0.35rem; font-size: 0.8rem; }
 }

@@ -72,6 +72,10 @@ export const albums = pgTable("albums", {
   coverImageId: uuid("cover_image_id").references(() => images.id, {
     onDelete: "set null",
   }),
+  /** Imagen que aparece al pasar el cursor por la portada (opcional). */
+  hoverImageId: uuid("hover_image_id").references(() => images.id, {
+    onDelete: "set null",
+  }),
   sortOrder: integer("sort_order").notNull().default(0),
   status: referenceStatus("status").notNull().default("draft"),
   createdAt: timestamp("created_at", { withTimezone: true })

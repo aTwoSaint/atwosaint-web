@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { albums } from "@/content/music";
 import { formatDuration, isBeatStarsUrl, isBlobUrl } from "@/features/music/links";
+import { buildSlots, MIN_SLOTS } from "@/features/music/slots";
 import { albumSchema, trackSchema } from "@/features/music/schema";
 import {
   angleForIndex,
@@ -33,6 +34,22 @@ describe("catálogo de demostración", () => {
       if (a.buyUrl) expect(isBeatStarsUrl(a.buyUrl)).toBe(true);
       for (const t of a.tracks) if (t.buyUrl) expect(isBeatStarsUrl(t.buyUrl)).toBe(true);
     }
+  });
+});
+
+describe("huecos del carrusel", () => {
+  it("sin proyectos no se añaden huecos", () => {
+    expect(buildSlots([])).toEqual([]);
+  });
+  it("con pocos proyectos se completa con huecos Coming Soon tras los reales", () => {
+    const slots = buildSlots(albums.slice(0, 1));
+    expect(slots).toHaveLength(MIN_SLOTS);
+    expect(slots[0].kind).toBe("album");
+    expect(slots.slice(1).every((x) => x.kind === "soon")).toBe(true);
+    expect(new Set(slots.map((x) => (x.kind === "soon" ? x.id : x.album.id))).size).toBe(MIN_SLOTS);
+  });
+  it("con suficientes proyectos no se añaden huecos", () => {
+    expect(buildSlots(albums).every((x) => x.kind === "album")).toBe(true);
   });
 });
 

@@ -18,6 +18,8 @@ export type Track = {
   buyUrl?: string;
 };
 
+export type AlbumImage = { src: string; alt: string; width: number; height: number };
+
 export type Album = {
   id: string;
   slug: string;
@@ -26,7 +28,9 @@ export type Album = {
   kind: MusicKind;
   year?: number;
   /** Sin portada se muestra un sustituto con la inicial del título. */
-  cover?: { src: string; alt: string; width: number; height: number };
+  cover?: AlbumImage;
+  /** Imagen que sustituye a la portada al pasar el cursor (la sube el administrador). */
+  hover?: AlbumImage;
   tracks: Track[];
   description?: string;
   /** Enlace de compra del proyecto (BeatStars). */
