@@ -1,5 +1,6 @@
 import "server-only";
 import { asc, desc, eq, like, max } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db";
 import { albums, images, tracks } from "@/lib/db/schema";
 import { slugify, uniqueSlug } from "@/lib/slug";
@@ -17,6 +18,7 @@ export type AdminAlbum = {
   status: "draft" | "published";
   coverUrl: string | null;
   coverAlt: string | null;
+  hoverUrl: string | null;
   trackCount: number;
 };
 
@@ -34,13 +36,15 @@ type BatchStatements = Parameters<ReturnType<typeof getDb>["batch"]>[0];
 
 export async function listAdminAlbums(): Promise<AdminAlbum[]> {
   const db = getDb();
+  const hoverImages = alias(images, "hover_images");
   const rows = await db
-    .select({ album: albums, cover: images })
+    .select({ album: albums, cover: images, hover: hoverImages })
     .from(albums)
     .leftJoin(images, eq(albums.coverImageId, images.id))
+    .leftJoin(hoverImages, eq(albums.hoverImageId, hoverImages.id))
     .orderBy(desc(albums.sortOrder));
   const counts = await db.select({ albumId: tracks.albumId }).from(tracks);
-  return rows.map(({ album: a, cover }) => ({
+  return rows.map(({ album: a, cover, hover }) => ({
     id: a.id,
     slug: a.slug,
     title: a.title,
@@ -52,6 +56,7 @@ export async function listAdminAlbums(): Promise<AdminAlbum[]> {
     status: a.status,
     coverUrl: cover?.url ?? null,
     coverAlt: cover?.alt ?? null,
+    hoverUrl: hover?.url ?? null,
     trackCount: counts.filter((c) => c.albumId === a.id).length,
   }));
 }
@@ -93,7 +98,11 @@ export type NewCover = {
 
 export class SlugConflictError extends Error {}
 
-export async function createAlbum(input: AlbumInput, cover: NewCover | null): Promise<{ id: string }> {
+export async function createAlbum(
+  input: AlbumInput,
+  cover: NewCover | null,
+  hover: NewCover | null = null,
+): Promise<{ id: string }> {
   const db = getDb();
   const base = slugify(input.title);
   const existing = await db.select({ slug: albums.slug }).from(albums).where(like(albums.slug, `${base}%`));
@@ -102,8 +111,10 @@ export async function createAlbum(input: AlbumInput, cover: NewCover | null): Pr
 
   const id = crypto.randomUUID();
   const coverId = cover ? crypto.randomUUID() : null;
+  const hoverId = hover ? crypto.randomUUID() : null;
   const statements = [
     ...(cover && coverId ? [db.insert(images).values({ id: coverId, ...cover })] : []),
+    ...(hover && hoverId ? [db.insert(images).values({ id: hoverId, ...hover })] : []),
     db.insert(albums).values({
       id,
       slug,
@@ -114,6 +125,7 @@ export async function createAlbum(input: AlbumInput, cover: NewCover | null): Pr
       description: input.description ?? null,
       buyUrl: input.buyUrl ?? null,
       coverImageId: coverId,
+      hoverImageId: hoverId,
       sortOrder: (top ?? 0) + 1,
       status: input.status,
     }),
@@ -127,14 +139,22 @@ export async function createAlbum(input: AlbumInput, cover: NewCover | null): Pr
   return { id };
 }
 
-/** Actualiza los datos; si llega una portada nueva, sustituye la anterior y devuelve su URL para borrarla. */
-export async function updateAlbum(id: string, input: AlbumInput, cover: NewCover | null): Promise<string | null> {
+/**
+ * Actualiza los datos; si llegan imágenes nuevas (portada y/o hover) sustituyen a las anteriores.
+ * Devuelve las URLs de los archivos sustituidos para borrarlos del almacén.
+ */
+export async function updateAlbum(
+  id: string,
+  input: AlbumInput,
+  cover: NewCover | null,
+  hover: NewCover | null = null,
+): Promise<string[]> {
   const db = getDb();
   const [current] = await db
-    .select({ coverImageId: albums.coverImageId })
+    .select({ coverImageId: albums.coverImageId, hoverImageId: albums.hoverImageId })
     .from(albums)
     .where(eq(albums.id, id));
-  if (!current) return null;
+  if (!current) return [];
 
   const values = {
     title: input.title,
@@ -147,20 +167,31 @@ export async function updateAlbum(id: string, input: AlbumInput, cover: NewCover
     updatedAt: new Date(),
   };
 
-  if (!cover) {
+  if (!cover && !hover) {
     await db.update(albums).set(values).where(eq(albums.id, id));
-    return null;
+    return [];
   }
 
-  const oldId = current.coverImageId;
-  const [old] = oldId ? await db.select({ url: images.url }).from(images).where(eq(images.id, oldId)) : [];
-  const newId = crypto.randomUUID();
-  await db.batch([
-    db.insert(images).values({ id: newId, ...cover }),
-    db.update(albums).set({ ...values, coverImageId: newId }).where(eq(albums.id, id)),
-    ...(oldId ? [db.delete(images).where(eq(images.id, oldId))] : []),
-  ] as unknown as BatchStatements);
-  return old?.url ?? null;
+  const replaced: { id: string; url: string | undefined }[] = [];
+  const statements = [];
+  const set: Record<string, unknown> = { ...values };
+  for (const [next, oldId, column] of [
+    [cover, current.coverImageId, "coverImageId"],
+    [hover, current.hoverImageId, "hoverImageId"],
+  ] as const) {
+    if (!next) continue;
+    const newId = crypto.randomUUID();
+    statements.push(db.insert(images).values({ id: newId, ...next }));
+    set[column] = newId;
+    if (oldId) {
+      const [old] = await db.select({ url: images.url }).from(images).where(eq(images.id, oldId));
+      replaced.push({ id: oldId, url: old?.url });
+    }
+  }
+  statements.push(db.update(albums).set(set).where(eq(albums.id, id)));
+  for (const r of replaced) statements.push(db.delete(images).where(eq(images.id, r.id)));
+  await db.batch(statements as unknown as BatchStatements);
+  return replaced.flatMap((r) => (r.url ? [r.url] : []));
 }
 
 export async function setAlbumStatus(id: string, status: "draft" | "published"): Promise<void> {
@@ -171,21 +202,22 @@ export async function setAlbumStatus(id: string, status: "draft" | "published"):
 export async function deleteAlbum(id: string): Promise<string[]> {
   const db = getDb();
   const [row] = await db
-    .select({ coverImageId: albums.coverImageId })
+    .select({ coverImageId: albums.coverImageId, hoverImageId: albums.hoverImageId })
     .from(albums)
     .where(eq(albums.id, id));
   if (!row) return [];
   const trackRows = await db.select({ url: tracks.audioUrl }).from(tracks).where(eq(tracks.albumId, id));
-  const [cover] = row.coverImageId
-    ? await db.select({ url: images.url }).from(images).where(eq(images.id, row.coverImageId))
-    : [];
+  const imageIds = [row.coverImageId, row.hoverImageId].filter((x): x is string => Boolean(x));
+  const imageRows = await Promise.all(
+    imageIds.map((iid) => db.select({ url: images.url }).from(images).where(eq(images.id, iid))),
+  );
 
   await db.batch([
     db.delete(albums).where(eq(albums.id, id)), // las canciones caen en cascada
-    ...(row.coverImageId ? [db.delete(images).where(eq(images.id, row.coverImageId))] : []),
+    ...imageIds.map((iid) => db.delete(images).where(eq(images.id, iid))),
   ] as unknown as BatchStatements);
 
-  return [...trackRows.map((t) => t.url), ...(cover ? [cover.url] : [])];
+  return [...trackRows.map((t) => t.url), ...imageRows.flatMap((r) => r.map((x) => x.url))];
 }
 
 export async function addTrack(input: {

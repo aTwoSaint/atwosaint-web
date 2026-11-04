@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   angleForIndex,
   baseAngle,
@@ -11,6 +11,7 @@ import {
   shortestDelta,
   wrap180,
 } from "@/features/music/ring";
+import { buildSlots } from "@/features/music/slots";
 import { KIND_LABELS, type Album } from "@/features/music/types";
 import { Triangle } from "@/components/wii/Triangle";
 import { AlbumPanel } from "./AlbumPanel";
@@ -24,7 +25,8 @@ const TILT = -8; // inclinación del anillo (se ve ligeramente desde arriba)
  * se detiene al pasar el cursor, al enfocar con teclado y mientras hay un álbum abierto.
  */
 export function MusicRoom({ albums }: { albums: Album[] }) {
-  const n = albums.length;
+  const slots = useMemo(() => buildSlots(albums), [albums]);
+  const n = slots.length;
   const stage = useRef<HTMLDivElement>(null);
   const ring = useRef<HTMLUListElement>(null);
   const items = useRef<(HTMLLIElement | null)[]>([]);
@@ -150,7 +152,7 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
     setOpen(null);
   }, []);
 
-  if (n === 0) {
+  if (albums.length === 0) {
     return (
       <div className="music-empty">
         <p>Aún no hay música publicada.</p>
@@ -158,7 +160,7 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
     );
   }
 
-  const current = albums[front];
+  const currentSlot = slots[front] ?? slots[0];
 
   return (
     <>
@@ -172,49 +174,83 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
         >
           <div className="music-floorglow" aria-hidden />
           <ul ref={ring} className="music-ring">
-            {albums.map((album, i) => (
-              <li
-                key={album.id}
-                ref={(el) => {
-                  items.current[i] = el;
-                }}
-                className="music-cover"
-                data-front={i === front}
-                style={{ "--a": `${baseAngle(i, n)}deg`, "--f": i === 0 ? 1 : 0, "--e": 1 } as React.CSSProperties}
-              >
-                <button
-                  type="button"
-                  className="music-cover__btn"
-                  aria-label={`Abrir ${album.title}, ${album.artist}${album.demo ? " (demostración)" : ""}`}
-                  onPointerEnter={(e) => {
-                    if (e.pointerType !== "touch") s.current.hover = true;
+            {slots.map((slot, i) => {
+              const coverStyle = { "--a": `${baseAngle(i, n)}deg`, "--f": i === 0 ? 1 : 0, "--e": 1 } as React.CSSProperties;
+              if (slot.kind === "soon") {
+                return (
+                  <li
+                    key={slot.id}
+                    ref={(el) => {
+                      items.current[i] = el;
+                    }}
+                    className="music-cover music-cover--soon"
+                    data-front={i === front}
+                    aria-hidden
+                    style={coverStyle}
+                  >
+                    <div className="music-cover__btn music-cover__soon">
+                      <span className="music-cover__soon-note">♪</span>
+                      <span className="music-cover__soon-text">Coming Soon</span>
+                    </div>
+                  </li>
+                );
+              }
+              const album = slot.album;
+              return (
+                <li
+                  key={album.id}
+                  ref={(el) => {
+                    items.current[i] = el;
                   }}
-                  onPointerLeave={() => {
-                    s.current.hover = false;
-                    s.current.idleUntil = performance.now() + 1200;
-                  }}
-                  onFocus={() => goTo(i)}
-                  onClick={() => openAlbum(i)}
+                  className="music-cover"
+                  data-front={i === front}
+                  style={coverStyle}
                 >
-                  {album.cover ? (
-                    <Image
-                      src={album.cover.src}
-                      alt=""
-                      fill
-                      sizes="210px"
-                      unoptimized={album.cover.src.endsWith(".svg")}
-                      draggable={false}
-                      priority={i < 3}
-                    />
-                  ) : (
-                    <span aria-hidden className="music-cover__fallback">
-                      {album.title.trim().charAt(0).toUpperCase() || "♪"}
-                    </span>
-                  )}
-                  <span aria-hidden className="music-cover__sheen" />
-                </button>
-              </li>
-            ))}
+                  <button
+                    type="button"
+                    className="music-cover__btn"
+                    aria-label={`Abrir ${album.title}, ${album.artist}${album.demo ? " (demostración)" : ""}`}
+                    onPointerEnter={(e) => {
+                      if (e.pointerType !== "touch") s.current.hover = true;
+                    }}
+                    onPointerLeave={() => {
+                      s.current.hover = false;
+                      s.current.idleUntil = performance.now() + 1200;
+                    }}
+                    onFocus={() => goTo(i)}
+                    onClick={() => openAlbum(i)}
+                  >
+                    {album.cover ? (
+                      <Image
+                        src={album.cover.src}
+                        alt=""
+                        fill
+                        sizes="210px"
+                        unoptimized={album.cover.src.endsWith(".svg")}
+                        draggable={false}
+                        priority={i < 3}
+                      />
+                    ) : (
+                      <span aria-hidden className="music-cover__fallback">
+                        {album.title.trim().charAt(0).toUpperCase() || "♪"}
+                      </span>
+                    )}
+                    {album.hover ? (
+                      <Image
+                        className="music-cover__hover"
+                        src={album.hover.src}
+                        alt=""
+                        fill
+                        sizes="210px"
+                        unoptimized={album.hover.src.endsWith(".svg")}
+                        draggable={false}
+                      />
+                    ) : null}
+                    <span aria-hidden className="music-cover__sheen" />
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
@@ -223,14 +259,23 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
             <Triangle dir="left" />
           </button>
           <div className="music-caption__text" aria-live="polite">
-            {current.demo ? <p className="music-caption__demo">Demostración</p> : null}
-            <h1 className="music-caption__title">{current.title}</h1>
-            <p className="music-caption__meta">
-              {current.artist} · {KIND_LABELS[current.kind]}
-            </p>
-            <button ref={openBtn} type="button" className="wii-pill music-open" onClick={() => openAlbum(front)}>
-              Ver detalles
-            </button>
+            {currentSlot.kind === "soon" ? (
+              <>
+                <h1 className="music-caption__title music-caption__title--soon">Coming Soon</h1>
+                <p className="music-caption__meta">Próximos proyectos</p>
+              </>
+            ) : (
+              <>
+                {currentSlot.album.demo ? <p className="music-caption__demo">Demostración</p> : null}
+                <h1 className="music-caption__title">{currentSlot.album.title}</h1>
+                <p className="music-caption__meta">
+                  {currentSlot.album.artist} · {KIND_LABELS[currentSlot.album.kind]}
+                </p>
+                <button ref={openBtn} type="button" className="wii-pill music-open" onClick={() => openAlbum(front)}>
+                  Ver detalles
+                </button>
+              </>
+            )}
           </div>
           <button type="button" className="music-arrow" aria-label="Proyecto siguiente" onClick={() => step(1)}>
             <Triangle dir="right" />

@@ -21,6 +21,7 @@ export const albums: Album[] = [
     kind: "album",
     year: 2026,
     cover: cover("01", "Portada de demostración 01: composición de círculos concéntricos."),
+    hover: cover("03", "Imagen de demostración al pasar el cursor."),
     tracks: [
       { id: "t1", title: "Pista de ejemplo 1", duration: "0:02", audioUrl: "/music/demo-tone.wav", buyUrl: "https://www.beatstars.com/" },
       { id: "t2", title: "Pista de ejemplo 2", duration: "4:17" },

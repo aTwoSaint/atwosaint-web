@@ -40,22 +40,28 @@ function readValues(formData: FormData): Record<string, string> {
   );
 }
 
+type ImageRead = { cover: NewCover | null; uploaded: string[]; error?: string };
+
+/** Lee una imagen opcional del formulario (portada o imagen de hover), la procesa y la sube. */
 async function readCover(
   formData: FormData,
   title: string,
-): Promise<{ cover: NewCover | null; uploaded: string[]; error?: string }> {
-  const file = formData.get("cover");
+  field = "cover",
+  what = "Portada",
+  folder = "musica/portadas",
+): Promise<ImageRead> {
+  const file = formData.get(field);
   if (!(file instanceof File) || file.size === 0) return { cover: null, uploaded: [] };
-  if (file.size > MAX_FILE_BYTES) return { cover: null, uploaded: [], error: "La portada pesa más de 4 MB." };
+  if (file.size > MAX_FILE_BYTES) return { cover: null, uploaded: [], error: `La imagen (${what.toLowerCase()}) pesa más de 4 MB.` };
   try {
     const processed = await processImage(Buffer.from(await file.arrayBuffer()));
-    const stored = await uploadImage(processed.data, `cover-${randomBytes(4).toString("hex")}`, "musica/portadas");
+    const stored = await uploadImage(processed.data, `${field}-${randomBytes(4).toString("hex")}`, folder);
     return {
       uploaded: [stored.url],
       cover: {
         url: stored.url,
         storageKey: stored.pathname,
-        alt: `Portada de ${title}`,
+        alt: `${what} de ${title}`,
         width: processed.width,
         height: processed.height,
         mimeType: processed.mimeType,
@@ -84,12 +90,17 @@ export async function createAlbumAction(_prev: ActionState, formData: FormData):
 
   const { cover, uploaded, error } = await readCover(formData, parsed.data.title);
   if (error) return { fieldErrors: { cover: error }, values };
+  const hoverRead = await readCover(formData, parsed.data.title, "hover", "Imagen hover");
+  if (hoverRead.error) {
+    await deleteImages(uploaded);
+    return { fieldErrors: { hover: hoverRead.error }, values };
+  }
 
   let id: string;
   try {
-    ({ id } = await createAlbum(parsed.data, cover));
+    ({ id } = await createAlbum(parsed.data, cover, hoverRead.cover));
   } catch (e) {
-    await deleteImages(uploaded);
+    await deleteImages([...uploaded, ...hoverRead.uploaded]);
     console.error("Error al crear el proyecto", e);
     return {
       error:
@@ -113,12 +124,17 @@ export async function updateAlbumAction(_prev: ActionState, formData: FormData):
 
   const { cover, uploaded, error } = await readCover(formData, parsed.data.title);
   if (error) return { fieldErrors: { cover: error }, values };
+  const hoverRead = await readCover(formData, parsed.data.title, "hover", "Imagen hover");
+  if (hoverRead.error) {
+    await deleteImages(uploaded);
+    return { fieldErrors: { hover: hoverRead.error }, values };
+  }
 
   try {
-    const oldCover = await updateAlbum(id.data, parsed.data, cover);
-    if (oldCover) await deleteImages([oldCover]);
+    const replaced = await updateAlbum(id.data, parsed.data, cover, hoverRead.cover);
+    if (replaced.length > 0) await deleteImages(replaced);
   } catch (e) {
-    await deleteImages(uploaded);
+    await deleteImages([...uploaded, ...hoverRead.uploaded]);
     console.error("Error al actualizar el proyecto", e);
     return { error: "No se ha podido guardar. Inténtalo de nuevo.", values };
   }

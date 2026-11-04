@@ -109,12 +109,15 @@ export function AlbumPanel({ album, onClose }: { album: Album; onClose: () => vo
         </div>
 
         <div className="album-panel__body">
-          {album.demo ? <p className="album-panel__demo">Contenido de demostración</p> : null}
-          <p className="album-panel__meta">{meta}</p>
-          <h2 id="album-title" className="album-panel__title">
-            {album.title}
-          </h2>
-          <p className="album-panel__artist">{album.artist}</p>
+          <div className="album-panel__head">
+            {album.demo ? <p className="album-panel__demo">Contenido de demostración</p> : null}
+            <p className="album-panel__meta">{meta}</p>
+            <h2 id="album-title" className="album-panel__title">
+              {album.title}
+            </h2>
+            <p className="album-panel__artist">{album.artist}</p>
+          </div>
+          <div className="album-panel__scroll">
           {album.description ? <p className="album-panel__text">{album.description}</p> : null}
 
           <div className="album-panel__actions">
@@ -156,48 +159,51 @@ export function AlbumPanel({ album, onClose }: { album: Album; onClose: () => vo
             </ol>
           )}
 
-          <div className="album-player" hidden={current === null}>
-            <p className="album-player__now" aria-live="polite">
-              {failed ? "No se ha podido reproducir este archivo." : now ? `Sonando: ${now.title}` : ""}
-            </p>
-            <div className="album-player__row">
-              <button type="button" className="album-player__btn" aria-label="Canción anterior" onClick={() => step(-1)}>
-                <span aria-hidden>⏮</span>
-              </button>
-              <button
-                type="button"
-                className="album-player__btn album-player__btn--main"
-                aria-label={playing ? "Pausar" : "Reproducir"}
-                onClick={() => current !== null && play(current)}
-              >
-                <span aria-hidden>{playing ? "❚❚" : "▶"}</span>
-              </button>
-              <button type="button" className="album-player__btn" aria-label="Canción siguiente" onClick={() => step(1)}>
-                <span aria-hidden>⏭</span>
-              </button>
-              <span className="album-player__time" aria-hidden>
-                {clock(time)}
-              </span>
-              <input
-                type="range"
-                className="album-player__seek"
-                aria-label="Posición de la canción"
-                min={0}
-                max={Math.max(duration, 1)}
-                step={0.1}
-                value={Math.min(time, Math.max(duration, 1))}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setTime(v);
-                  if (audio.current) audio.current.currentTime = v;
-                }}
-              />
-              <span className="album-player__time" aria-hidden>
-                {clock(duration)}
-              </span>
-            </div>
           </div>
-          <audio
+        </div>
+
+          <div className="album-player" hidden={current === null}>
+          <p className="album-player__now" aria-live="polite">
+            {failed ? "No se ha podido reproducir este archivo." : now ? `Sonando: ${now.title}` : ""}
+          </p>
+          <div className="album-player__row">
+            <button type="button" className="album-player__btn" aria-label="Canción anterior" onClick={() => step(-1)}>
+              <span aria-hidden>⏮</span>
+            </button>
+            <button
+              type="button"
+              className="album-player__btn album-player__btn--main"
+              aria-label={playing ? "Pausar" : "Reproducir"}
+              onClick={() => current !== null && play(current)}
+            >
+              <span aria-hidden>{playing ? "❚❚" : "▶"}</span>
+            </button>
+            <button type="button" className="album-player__btn" aria-label="Canción siguiente" onClick={() => step(1)}>
+              <span aria-hidden>⏭</span>
+            </button>
+            <span className="album-player__time" aria-hidden>
+              {clock(time)}
+            </span>
+            <input
+              type="range"
+              className="album-player__seek"
+              aria-label="Posición de la canción"
+              min={0}
+              max={Math.max(duration, 1)}
+              step={0.1}
+              value={Math.min(time, Math.max(duration, 1))}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setTime(v);
+                if (audio.current) audio.current.currentTime = v;
+              }}
+            />
+            <span className="album-player__time" aria-hidden>
+              {clock(duration)}
+            </span>
+          </div>
+        </div>
+        <audio
             ref={audio}
             preload="none"
             onPlay={() => setPlaying(true)}
@@ -210,7 +216,6 @@ export function AlbumPanel({ album, onClose }: { album: Album; onClose: () => vo
               setFailed(true);
             }}
           />
-        </div>
       </section>
     </div>
   );
