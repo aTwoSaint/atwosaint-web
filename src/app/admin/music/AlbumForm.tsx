@@ -40,11 +40,11 @@ export function AlbumForm({ album }: { album?: AdminAlbum }) {
 
       <label className="block space-y-1">
         <span className={label}>
-          Imagen al pasar el cursor {album ? "(opcional, sustituye a la actual)" : "(opcional)"}
+          Imagen de fondo al pasar el cursor {album ? "(opcional, sustituye a la actual)" : "(opcional)"}
         </span>
         <input name="hover" type="file" accept="image/jpeg,image/png,image/webp,image/avif" className={field} />
         <span className="block text-xs text-muted">
-          Sustituye a la portada mientras el cursor está encima. Mejor cuadrada, como la portada.
+          Sustituye al fondo gris de la página mientras el cursor está sobre este proyecto. Mejor apaisada (16:9) y no muy clara en la parte baja.
           {album?.hoverUrl ? " Este proyecto ya tiene una." : ""}
         </span>
         <FieldError message={e.hover} />

@@ -282,18 +282,18 @@ test.describe("Music: display flotante", () => {
     await context.close();
   });
 
-  test("al pasar el cursor, la portada se sustituye por la imagen de hover del proyecto", async ({ browser }) => {
+  test("al pasar el cursor por un proyecto, el fondo de la página cambia a su imagen y la portada no cambia", async ({ browser }) => {
     const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
     const page = await context.newPage();
     await page.goto("/", { waitUntil: "networkidle" });
-    const first = covers(page).first();
-    const hover = first.locator(".music-cover__hover");
-    await expect(hover).toHaveCount(1);
-    await expect(hover).toHaveCSS("opacity", "0");
-    await first.focus();
-    await expect(hover).toHaveCSS("opacity", "1");
-    // Los proyectos sin imagen de hover no tienen capa extra.
-    await expect(covers(page).nth(1).locator(".music-cover__hover")).toHaveCount(0);
+    const bg = page.locator(".music-bg__img");
+    await expect(bg).toHaveCount(1); // solo los proyectos con imagen de fondo
+    await expect(bg).toHaveCSS("opacity", "0");
+    await expect(page.locator(".music-cover__hover")).toHaveCount(0);
+    await covers(page).first().focus();
+    await expect(bg).toHaveCSS("opacity", "1");
+    await covers(page).first().blur();
+    await expect(bg).toHaveCSS("opacity", "0");
     await context.close();
   });
 

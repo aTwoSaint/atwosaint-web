@@ -9,7 +9,7 @@
   min-height: 100dvh;
   padding: clamp(0.75rem, 2vw, 1.5rem) 0 calc(var(--bar-h) + 0.5rem);
 }
-.music { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-x: clip; }
+.music { position: relative; z-index: 1; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-x: clip; }
 
 /* ───────── Carrusel 3D ───────── */
 .music-stage {
@@ -365,18 +365,30 @@
 .music-cover__soon-note { opacity: clamp(0, calc((var(--f, 1) * 2 - 0.4) * 0.55), 0.55); }
 .music-caption__title--soon { color: var(--w-muted); }
 
-/* ───────── Imagen al pasar el cursor ───────── */
-.music-cover__hover {
-  opacity: 0;
-  object-fit: cover;
-  padding: 3px;
-  border-radius: calc(var(--w-radius) - 3px);
-  background: var(--w-grey);
-  transition: opacity 0.35s ease;
+/* ───────── Fondo de la página al pasar el cursor por un proyecto ───────── */
+.music-bg {
+  position: fixed;
+  inset: 0;
   z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
-.music-cover__btn:hover .music-cover__hover,
-.music-cover__btn:focus-visible .music-cover__hover { opacity: 1; }
+.music-bg__img {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.music-bg__img[data-on="true"] { opacity: 1; }
+.music-bg__img img { object-fit: cover; }
+/* Velo claro para que el título y la barra se lean sobre cualquier imagen. */
+.music-bg__img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(236 238 241 / 0.92) 0%, rgb(236 238 241 / 0.55) 30%, rgb(236 238 241 / 0.12) 62%, transparent 100%);
+}
+.wii-music { position: relative; z-index: 1; }
 
 /* ───────── Detalle en móvil: ventana fija, sin desplazamiento de la página ───────── */
 html:has(.album-backdrop) { overflow: hidden; overscroll-behavior: none; }
