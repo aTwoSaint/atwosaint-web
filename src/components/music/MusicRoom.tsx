@@ -34,6 +34,7 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
   const s = useRef({ angle: 0, target: null as number | null, hover: false, paused: false, idleUntil: 0, reduced: false });
   const [front, setFront] = useState(0);
   const [open, setOpen] = useState<number | null>(null);
+  const [bgId, setBgId] = useState<string | null>(null); // álbum cuya imagen de fondo se muestra
 
   const goTo = useCallback(
     (i: number) => {
@@ -164,6 +165,22 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
 
   return (
     <>
+      <div className="music-bg" aria-hidden>
+        {albums.map((a) =>
+          a.hover ? (
+            <div key={a.id} className="music-bg__img" data-on={open === null && bgId === a.id}>
+              <Image
+                src={a.hover.src}
+                alt=""
+                fill
+                sizes="100vw"
+                unoptimized={a.hover.src.endsWith(".svg")}
+                draggable={false}
+              />
+            </div>
+          ) : null,
+        )}
+      </div>
       <div className="music" inert={open !== null}>
         <div
           ref={stage}
@@ -211,13 +228,20 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
                     className="music-cover__btn"
                     aria-label={`Abrir ${album.title}, ${album.artist}${album.demo ? " (demostración)" : ""}`}
                     onPointerEnter={(e) => {
-                      if (e.pointerType !== "touch") s.current.hover = true;
+                      if (e.pointerType === "touch") return;
+                      s.current.hover = true;
+                      setBgId(album.id);
                     }}
                     onPointerLeave={() => {
                       s.current.hover = false;
                       s.current.idleUntil = performance.now() + 1200;
+                      setBgId((id) => (id === album.id ? null : id));
                     }}
-                    onFocus={() => goTo(i)}
+                    onFocus={() => {
+                      goTo(i);
+                      setBgId(album.id);
+                    }}
+                    onBlur={() => setBgId((id) => (id === album.id ? null : id))}
                     onClick={() => openAlbum(i)}
                   >
                     {album.cover ? (
@@ -235,17 +259,6 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
                         {album.title.trim().charAt(0).toUpperCase() || "♪"}
                       </span>
                     )}
-                    {album.hover ? (
-                      <Image
-                        className="music-cover__hover"
-                        src={album.hover.src}
-                        alt=""
-                        fill
-                        sizes="210px"
-                        unoptimized={album.hover.src.endsWith(".svg")}
-                        draggable={false}
-                      />
-                    ) : null}
                     <span aria-hidden className="music-cover__sheen" />
                   </button>
                 </li>

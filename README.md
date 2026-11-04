@@ -40,7 +40,7 @@ docs/               Decisiones y notas
 
 **Gestión (sin tocar código):** `/admin/music` → crear/editar/ocultar/eliminar álbumes, subir portada y añadir o borrar canciones mp3/wav (hasta 80 MB, subida directa a Vercel Blob; las URLs del audio son públicas, usa versiones de previsualización si vendes beats). Mientras no haya nada publicado se ven 6 proyectos de **demostración** marcados como tal (`src/content/music.ts`).
 
-Si hay menos de 6 proyectos, el anillo se completa con huecos grises «Coming Soon». Cada proyecto puede tener una **imagen de hover** (sustituye a la portada al pasar el cursor).
+Si hay menos de 6 proyectos, el anillo se completa con huecos grises «Coming Soon». Cada proyecto puede tener una **imagen de hover** (cambia el fondo de la página al pasar el cursor).
 
 **Base de datos:** aplica una vez `drizzle/0001_cloudy_quasimodo.sql` y después `drizzle/0002_hover_image.sql` en el editor SQL de Neon (solo añaden tablas/columna; no tocan `references`). Sin la 0002 la web sigue funcionando (sin imagen de hover), pero el admin de música la necesita. Navegación: botones de la barra inferior (Menú: Music `/`, References `/referencias`, About `/about`).
 
