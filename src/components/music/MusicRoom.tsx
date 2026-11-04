@@ -259,15 +259,31 @@ export function MusicRoom({ albums }: { albums: Album[] }) {
             <Triangle dir="left" />
           </button>
           <div className="music-caption__text" aria-live="polite">
+            {/* Misma estructura para todos los huecos: si el pie cambiara de alto, el escenario
+                (y con él el tamaño y la distancia del carrusel) cambiaría al girar. */}
             {currentSlot.kind === "soon" ? (
               <>
+                <p className="music-caption__demo" aria-hidden style={{ visibility: "hidden" }}>
+                  &nbsp;
+                </p>
                 <h1 className="music-caption__title music-caption__title--soon">Coming Soon</h1>
                 <p className="music-caption__meta">Próximos proyectos</p>
+                <span className="wii-pill music-open" aria-hidden style={{ visibility: "hidden" }}>
+                  Ver detalles
+                </span>
               </>
             ) : (
               <>
-                {currentSlot.album.demo ? <p className="music-caption__demo">Demostración</p> : null}
-                <h1 className="music-caption__title">{currentSlot.album.title}</h1>
+                <p
+                  className="music-caption__demo"
+                  aria-hidden={!currentSlot.album.demo}
+                  style={currentSlot.album.demo ? undefined : { visibility: "hidden" }}
+                >
+                  {currentSlot.album.demo ? "Demostración" : "\u00a0"}
+                </p>
+                <h1 className="music-caption__title" title={currentSlot.album.title}>
+                  {currentSlot.album.title}
+                </h1>
                 <p className="music-caption__meta">
                   {currentSlot.album.artist} · {KIND_LABELS[currentSlot.album.kind]}
                 </p>

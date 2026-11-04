@@ -137,14 +137,20 @@
   color: var(--w-blue-ink);
 }
 .music-caption__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin: 0;
   font-size: clamp(1.4rem, 3.6vw, 2.2rem);
   font-weight: 600;
   line-height: 1.15;
   color: var(--w-text);
 }
-.music-caption__meta { margin: 0.35rem 0 0; font-size: 0.82rem; letter-spacing: 0.08em; color: var(--w-muted); }
-.music-open { margin-top: 0.8rem; }
+.music-caption__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; margin: 0.35rem 0 0; font-size: 0.82rem; letter-spacing: 0.08em; color: var(--w-muted); }
+.music-open { margin-top: 0.8rem; display: inline-flex; }
 .music-arrow {
   flex: none;
   display: grid;
