@@ -105,7 +105,9 @@ html[data-intro="leaving"] .wii-intro__hint {
 }
 
 /* El contenido espera detrás de la intro, desenfocado, y se enfoca al entrar. */
-html[data-intro="active"] [data-wii-content] {
+/* Solo el escenario se desenfoca: la barra (fija) nunca cambia de filtro, porque en Safari/iOS un
+   elemento fijo cuyo filtro cambia puede quedar sin repintar y no aparecer hasta recargar. */
+html[data-intro="active"] .wii-stage[data-wii-content] {
   filter: blur(12px);
 }
 
@@ -415,13 +417,15 @@ html[data-intro="active"] .wii-channel { animation: none; opacity: 0; }
   color: var(--w-text);
   font-family: var(--font-sans);
   color-scheme: light;
-  filter: drop-shadow(0 -6px 14px rgb(54 179 238 / 0.22));
+  /* Capa propia: evita que Safari/iOS no la pinte tras salir de la intro. */
+  transform: translateZ(0);
 }
 .wii-bar__shape {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  filter: drop-shadow(0 -6px 14px rgb(54 179 238 / 0.22));
 }
 .wii-bar__center {
   position: absolute;
@@ -606,7 +610,7 @@ html.wii-cursor-on .wii-panel *,
 html.wii-cursor-on .wii-intro { cursor: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-intro="active"] [data-wii-content] { filter: none; }
+  html[data-intro="active"] .wii-stage[data-wii-content] { filter: none; }
   .wii-channel:hover { transform: none; }
 }
 

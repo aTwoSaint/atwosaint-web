@@ -132,6 +132,24 @@ test.describe("pantalla de inicio", () => {
     });
   }
 
+  test("móvil: tras entrar, la barra inferior está visible, abajo y sin filtros que cambien (sin recargar)", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: VIEWPORTS.movil, hasTouch: true, isMobile: true });
+    const page = await context.newPage();
+    await page.goto("/", { waitUntil: "networkidle" });
+    const filterOf = () => page.locator(".wii-bar").evaluate((el) => getComputedStyle(el).filter);
+    expect(await filterOf()).toBe("none"); // ni siquiera mientras la intro está activa
+    await page.locator(".wii-intro").tap();
+    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen", { timeout: 3000 });
+    expect(await filterOf()).toBe("none");
+    const bar = page.locator(".wii-bar");
+    await expect(bar).toBeVisible();
+    const box = (await bar.boundingBox())!;
+    expect(Math.round(box.y + box.height)).toBe(VIEWPORTS.movil.height);
+    await expect(page.getByRole("button", { name: "Menú", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Contacto", exact: true })).toBeVisible();
+    await context.close();
+  });
+
   test("el contenido queda inerte mientras la intro está activa", async ({ browser }) => {
     const context = await browser.newContext();
     const page = await context.newPage();
