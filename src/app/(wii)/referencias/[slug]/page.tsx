@@ -26,6 +26,12 @@ export async function generateMetadata({
   };
 }
 
+/** Proporción de la propia imagen (sin recortarla), acotada para que ninguna ocupe una pantalla entera. */
+function figureRatio(image: { width: number; height: number }): number {
+  const r = image.width > 0 && image.height > 0 ? image.width / image.height : 4 / 5;
+  return Math.min(1.8, Math.max(0.6, r));
+}
+
 export default async function ReferencePage({
   params,
 }: PageProps<"/referencias/[slug]">) {
@@ -49,11 +55,11 @@ export default async function ReferencePage({
         <div
           className={`wii-detail__images ${reference.hoverImage ? "wii-detail__images--two" : ""}`}
         >
-          <figure className="wii-detail__fig" style={{ margin: 0 }}>
+          <figure className="wii-detail__fig" style={{ margin: 0, aspectRatio: figureRatio(reference.image) }}>
             <ReferenceImageView image={reference.image} sizes={sizes} priority />
           </figure>
           {reference.hoverImage ? (
-            <figure className="wii-detail__fig" style={{ margin: 0 }}>
+            <figure className="wii-detail__fig" style={{ margin: 0, aspectRatio: figureRatio(reference.hoverImage) }}>
               <ReferenceImageView image={reference.hoverImage} sizes={sizes} />
             </figure>
           ) : null}

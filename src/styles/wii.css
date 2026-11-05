@@ -358,6 +358,7 @@ html[data-intro="active"] .wii-channel { animation: none; opacity: 0; }
 .wii-pill:active { transform: scale(0.97); }
 .wii-detail__card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.75rem;
   margin-top: 1.5rem;
   padding: clamp(1rem, 2.5vw, 1.75rem);
@@ -378,11 +379,17 @@ html[data-intro="active"] .wii-channel { animation: none; opacity: 0; }
 }
 .wii-detail__fig {
   position: relative;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 4 / 5; /* la página fija la proporción real de cada imagen */
+  width: 100%;
   overflow: hidden;
   border-radius: var(--w-radius);
   background: var(--w-grey);
 }
+/* La imagen se ve entera dentro de su caja (sin recortes) y el texto largo nunca la desborda. */
+.wii-detail__fig img { object-fit: contain; }
+.wii-detail__meta,
+.wii-detail__title,
+.wii-detail__text { overflow-wrap: anywhere; min-width: 0; }
 .wii-detail__meta {
   margin: 0;
   font-size: 0.75rem;
@@ -682,4 +689,13 @@ html[data-intro="active"] .wii-slot { animation: none; opacity: 0; }
 .wii-arrow:hover { border: 0; box-shadow: none; transform: scale(1.15); filter: drop-shadow(0 0 8px rgb(54 179 238 / 0.8)); }
 @media (max-width: 639px) {
   .wii-arrow { width: 2.2rem; height: 3rem; }
+}
+
+/* Móvil: tarjetas más altas para que la imagen se vea bien y el texto quepa en su caja. */
+@media (max-width: 639px) {
+  .wii-channel,
+  .wii-slot { aspect-ratio: 4 / 4.7; }
+  .wii-channel__body { overflow-wrap: anywhere; padding: 0.5rem 0.65rem 0.65rem; }
+  .wii-channel__title { font-size: 0.9rem; }
+  .wii-channel__meta { font-size: 0.62rem; letter-spacing: 0.03em; }
 }
