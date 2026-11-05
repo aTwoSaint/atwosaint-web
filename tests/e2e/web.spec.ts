@@ -397,6 +397,59 @@ test.describe("menú de canales", () => {
     await context.close();
   });
 
+  test("móvil: textos largos e imágenes quedan dentro de sus cajas (menú y ficha)", async ({ browser }) => {
+    for (const width of [360, 390]) {
+      const context = await seenContext(browser, { viewport: { width, height: 800 }, hasTouch: true, isMobile: true });
+      const page = await context.newPage();
+      await page.goto("/referencias", { waitUntil: "networkidle" });
+      await page.evaluate(() => {
+        document.querySelectorAll(".wii-channel").forEach((li, i) => {
+          const a = li.querySelector(".wii-channel__title a");
+          if (a) a.textContent = i % 2 ? `Colección de verano muy larga con título extenso ${i}` : `Superlongtitlewithoutspaces${i}xxxxxxxxxxxxxxxxxxxx`;
+        });
+      });
+      await page.waitForTimeout(300);
+      const bad = await page.evaluate(() =>
+        [...document.querySelectorAll(".wii-channel")].flatMap((li) => {
+          const r = li.getBoundingClientRect();
+          return [...li.querySelectorAll("*")].filter((e) => {
+            const q = e.getBoundingClientRect();
+            return q.width > 0 && (q.bottom > r.bottom + 1 || q.right > r.right + 1 || q.left < r.left - 1);
+          }).length
+            ? [li.querySelector("a")?.textContent]
+            : [];
+        }),
+      );
+      expect(bad).toEqual([]);
+      // La imagen de cada canal conserva una altura útil (no queda aplastada por el texto).
+      const media = (await page.locator(".wii-channel__media").first().boundingBox())!;
+      expect(media.height).toBeGreaterThan(90);
+
+      await page.goto("/referencias/estudio-de-forma-001", { waitUntil: "networkidle" });
+      await page.evaluate(() => {
+        const t = document.querySelector(".wii-detail__title");
+        if (t) t.textContent = "Superlongtitlewithoutspacesxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+        const d = document.querySelector(".wii-detail__text");
+        if (d) d.textContent = "https://example.com/" + "a".repeat(120);
+      });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
+      const card = (await page.locator(".wii-detail__card").boundingBox())!;
+      for (const fig of await page.locator(".wii-detail__fig").all()) {
+        const f = (await fig.boundingBox())!;
+        expect(f.x).toBeGreaterThanOrEqual(card.x);
+        expect(f.x + f.width).toBeLessThanOrEqual(card.x + card.width + 1);
+        const img = (await fig.locator("img").boundingBox())!;
+        expect(img.width).toBeLessThanOrEqual(f.width + 1);
+        expect(img.height).toBeLessThanOrEqual(f.height + 1);
+      }
+      for (const sel of [".wii-detail__title", ".wii-detail__text"]) {
+        const b = (await page.locator(sel).boundingBox())!;
+        expect(b.x + b.width).toBeLessThanOrEqual(card.x + card.width + 1);
+      }
+      await context.close();
+    }
+  });
+
   test("la ficha vuelve a la misma página del menú y conserva la información", async ({ browser }) => {
     const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
     const page = await context.newPage();
