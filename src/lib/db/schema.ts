@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -106,3 +107,19 @@ export const tracks = pgTable("tracks", {
     .notNull()
     .defaultNow(),
 });
+
+/**
+ * Intentos de acceso fallidos, para frenar la fuerza bruta. Solo guarda un identificador
+ * anónimo (HMAC de la IP con AUTH_SECRET), nunca la IP en claro ni la contraseña.
+ */
+export const loginAttempts = pgTable(
+  "login_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    key: text("key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("login_attempts_key_created_idx").on(t.key, t.createdAt)],
+);

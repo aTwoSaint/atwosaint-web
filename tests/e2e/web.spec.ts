@@ -694,9 +694,18 @@ test.describe("rutas y cabeceras", () => {
     expect(h["strict-transport-security"]).toContain("max-age=");
     expect(h["cross-origin-opener-policy"]).toBe("same-origin");
     const csp = h["content-security-policy"];
-    for (const d of ["frame-ancestors 'none'", "base-uri 'self'", "form-action 'self'", "object-src 'none'"]) {
+    for (const d of [
+      "default-src 'self'",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+      "connect-src 'self' https://vercel.com https://*.public.blob.vercel-storage.com",
+    ]) {
       expect(csp).toContain(d);
     }
+    expect(csp).not.toMatch(/script-src[^;]*https?:/); // ningún script de otros sitios
+    expect(h["x-powered-by"]).toBeUndefined();
   });
 
   test("robots.txt oculta /admin", async ({ request }) => {
