@@ -1,4 +1,5 @@
 import {
+  date,
   index,
   integer,
   pgEnum,
@@ -68,7 +69,7 @@ export const albums = pgTable("albums", {
   kind: musicKind("kind").notNull().default("album"),
   year: integer("year"),
   description: text("description"),
-  /** Enlace de compra (BeatStars). Opcional. */
+  /** Enlace de compra (Traktrain). Opcional. */
   buyUrl: text("buy_url"),
   coverImageId: uuid("cover_image_id").references(() => images.id, {
     onDelete: "set null",
@@ -102,6 +103,14 @@ export const tracks = pgTable("tracks", {
   durationSeconds: integer("duration_seconds"),
   /** Enlace de compra propio de esta canción/beat (opcional). */
   buyUrl: text("buy_url"),
+  /** Dirección pública del beat (/music/<slug>). Opcional solo por compatibilidad con canciones antiguas. */
+  slug: text("slug").unique(),
+  bpm: integer("bpm"),
+  /** Tonalidad, p. ej. «F# minor». */
+  musicalKey: text("musical_key"),
+  description: text("description"),
+  /** Fecha de lanzamiento (AAAA-MM-DD). */
+  releasedOn: date("released_on", { mode: "string" }),
   position: integer("position").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

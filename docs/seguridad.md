@@ -23,14 +23,14 @@ El punto más débil de cualquier proyecto es la cuenta de quien lo administra, 
 - **CSRF**: las acciones de servidor de Next.js solo aceptan peticiones del mismo origen y la cookie es `SameSite=Strict`.
 - **Base de datos**: solo consultas parametrizadas (Drizzle); no hay SQL construido con texto del usuario. La web pública solo **lee**.
 - **Subidas**: las imágenes se revalidan y se reconvierten con `sharp` (límite de tamaño y de píxeles; no se admite SVG). El audio solo admite mp3/wav ≤ 80 MB, solo en la carpeta `musica/audio/`, con un token de subida de un solo uso emitido solo a administradores; el servidor vuelve a comprobar tipo y tamaño antes de guardarlo.
-- **Enlaces de compra**: solo se aceptan `https://` de BeatStars (sin credenciales en la URL).
+- **Enlaces de compra**: solo se aceptan `https://` de Traktrain (sin credenciales en la URL); si un beat no tiene enlace válido, el botón usa el perfil general.
 - **Cabeceras**: CSP (solo recursos propios y de nuestro almacén de Blob; sin plugins, sin incrustar la web en otra, sin enviar formularios a otros sitios), HSTS, `nosniff`, `X-Frame-Options: DENY`, política de referrer y de permisos. No se anuncia la tecnología del servidor.
 - **Dependencias**: `npm audit` en la CI (falla con vulnerabilidades altas), Dependabot semanal (npm y GitHub Actions) y análisis CodeQL en cada pull request.
 
 ## 2.1. Lo que NO cubre el código
 
 - Si alguien roba tu contraseña **o** el acceso a tu cuenta de Vercel/Neon/GitHub, el código no puede evitarlo.
-- Los audios subidos a Vercel Blob tienen **URL pública**: quien tenga el enlace puede descargarlos. Sube versiones de previsualización (con etiqueta de voz, recortadas o de menor calidad) y entrega los archivos finales por BeatStars.
+- Los audios subidos a Vercel Blob tienen **URL pública**: quien tenga el enlace puede descargarlos. Sube versiones de previsualización (con etiqueta de voz, recortadas o de menor calidad) y entrega los archivos finales por Traktrain.
 - La CSP permite scripts en línea (necesario para Next.js): reduce el daño de un fallo, pero no sustituye a no tenerlo.
 
 ## 3. Cómo se protege el código fuente (GitHub)

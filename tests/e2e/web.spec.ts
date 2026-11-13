@@ -1,689 +1,495 @@
 import AxeBuilder from "@axe-core/playwright";
-import {
-  expect,
-  test,
-  type Browser,
-  type BrowserContextOptions,
-  type Page,
-} from "@playwright/test";
+import { expect, test, type Browser, type BrowserContextOptions, type Page } from "@playwright/test";
 import { TEST_ADMIN } from "../../playwright.config";
-
-const VIEWS = {
-  inicio: "/",
-  referencias: "/referencias",
-  about: "/about",
-  ficha: "/referencias/estudio-de-forma-001",
-  acceso: "/admin/login",
-  "404": "/no-existe",
-} as const;
 
 const VIEWPORTS = {
   movil: { width: 390, height: 844 },
+  tableta: { width: 820, height: 1180 },
   escritorio: { width: 1440, height: 900 },
 } as const;
 
-test("accesibilidad de la pantalla de inicio (axe)", async ({ browser }) => {
-  const context = await browser.newContext({ viewport: VIEWPORTS.escritorio });
+const OFFICIAL = {
+  instagram: "https://www.instagram.com/atwosaint_/",
+  youtube: "https://www.youtube.com/@atwosaint2",
+  tiktok: "https://www.tiktok.com/@atwosaint",
+  traktrain: "https://traktrain.com/atwosaint",
+  email: "https://mail.google.com/mail/?view=cm&to=atwosaint2%40gmail.com",
+};
+
+/** Contexto sin intro (movimiento reducido) salvo que se pida lo contrario. */
+async function open(browser: Browser, viewport: { width: number; height: number } = VIEWPORTS.escritorio, options: BrowserContextOptions = {}) {
+  const context = await browser.newContext({ viewport, reducedMotion: "reduce", ...options });
   const page = await context.newPage();
-  await page.goto("/", { waitUntil: "networkidle" });
-  await page.waitForTimeout(2200); // logotipo y mensaje ya visibles
-  expect(await violations(page)).toEqual([]);
-  await context.close();
-});
+  return { context, page };
+}
 
 async function violations(page: Page) {
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"])
     .analyze();
-  return result.violations.map(
-    (v) => `${v.impact}: ${v.id} (${v.nodes.length}) — ${v.nodes[0]?.html.slice(0, 120)}`,
-  );
+  return result.violations.map((v) => `${v.impact}: ${v.id} (${v.nodes.length}) — ${v.nodes[0]?.html.slice(0, 140)}`);
 }
+
+async function noOverflow(page: Page) {
+  const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(over).toBeLessThanOrEqual(0);
+}
+
+const PAGES = [
+  "/",
+  "/home",
+  "/music",
+  "/music/demo-02",
+  "/archives",
+  "/archives/estudio-de-forma-001",
+  "/about",
+  "/contact",
+  "/privacy",
+  "/terms",
+  "/cookies",
+  "/admin/login",
+  "/no-existe",
+];
 
 test.describe("accesibilidad (axe, WCAG 2.2 AA)", () => {
-  for (const scheme of ["light", "dark"] as const) {
-    for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
-      for (const [viewName, path] of Object.entries(VIEWS)) {
-        test(`${viewName} · ${vpName} · ${scheme}`, async ({ browser }) => {
-          const context = await seenContext(browser, { viewport, colorScheme: scheme });
-          const page = await context.newPage();
-          await page.goto(path, { waitUntil: "networkidle" });
-          await page.waitForTimeout(900); // fin de las animaciones de entrada
-          expect(await violations(page)).toEqual([]);
-          await context.close();
-        });
-      }
+  for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
+    for (const path of PAGES) {
+      test(`${path} · ${vpName}`, async ({ browser }) => {
+        const { context, page } = await open(browser, viewport);
+        await page.goto(path, { waitUntil: "networkidle" });
+        expect(await violations(page)).toEqual([]);
+        await context.close();
+      });
     }
   }
 });
 
-/** Sesión en la que la intro ya se ha visto (la mayoría de pruebas parten de aquí). */
-async function seenContext(browser: Browser, options: BrowserContextOptions = {}) {
-  const context = await browser.newContext(options);
-  await context.addInitScript(() => {
-    try {
-      sessionStorage.setItem("atw_intro_seen", "1");
-    } catch {}
-  });
-  return context;
-}
-
-function collectErrors(page: Page) {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
-  page.on("console", (m) => {
-    if (m.type() === "error") errors.push(`console: ${m.text()}`);
-  });
-  return errors;
-}
-
-const channels = (page: Page) => page.locator(".wii-channel");
-
-const covers = (page: Page) => page.locator(".music-cover__btn");
-
-test.describe("pantalla de inicio", () => {
-  test("logotipo centrado en escritorio y móvil, con mensaje discreto", async ({ browser }) => {
-    for (const viewport of [VIEWPORTS.escritorio, VIEWPORTS.movil]) {
-      const context = await browser.newContext({ viewport });
-      const page = await context.newPage();
-      await page.goto("/", { waitUntil: "networkidle" });
-      await expect(page.locator("html")).toHaveAttribute("data-intro", "active");
-      await page.waitForTimeout(1000); // fin de la animación de aparición
-      const box = (await page.locator(".wii-intro__logo").boundingBox())!;
-      expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(1.5);
-      expect(Math.abs(box.y + box.height / 2 - viewport.height / 2)).toBeLessThanOrEqual(1.5);
-      await expect(page.locator(".wii-intro__hint")).toHaveText("Haz clic para entrar");
-      await context.close();
-    }
-  });
-
-  for (const how of ["clic", "Enter", "Espacio"] as const) {
-    test(`se entra con ${how}, sin recargar, y no reaparece`, async ({ browser }) => {
-      const context = await browser.newContext({ viewport: VIEWPORTS.escritorio });
-      const page = await context.newPage();
-      const errors = collectErrors(page);
-      await page.goto("/", { waitUntil: "networkidle" });
-      await page.evaluate(() => ((window as unknown as { __marca: number }).__marca = 42));
-
-      if (how === "clic") await page.mouse.click(700, 400);
-      if (how === "Enter") await page.keyboard.press("Enter");
-      if (how === "Espacio") await page.keyboard.press("Space");
-
-      await expect(page.locator("html")).toHaveAttribute("data-intro", "leaving");
-      await expect(page.locator("html")).toHaveAttribute("data-intro", "seen", { timeout: 3000 });
-      await expect(page.locator(".wii-intro")).toBeHidden();
-      await expect(covers(page).first()).toBeVisible();
-      // Misma página: el estado de JavaScript se conserva.
-      expect(await page.evaluate(() => (window as unknown as { __marca: number }).__marca)).toBe(42);
-
-      // Navegación interna y recarga: la intro no vuelve.
-      await page.getByRole("button", { name: "Menú", exact: true }).click();
-      await page.getByRole("link", { name: "References" }).click();
-      await expect(page).toHaveURL(/\/referencias$/);
-      await page.getByRole("button", { name: "Menú", exact: true }).click();
-      await page.getByRole("link", { name: "Music" }).click();
-      await expect(page).toHaveURL(/\/$/);
-      await expect(page.locator("html")).toHaveAttribute("data-intro", "seen");
-      await page.reload({ waitUntil: "networkidle" });
-      await expect(page.locator("html")).toHaveAttribute("data-intro", "seen");
-      await expect(page.locator(".wii-intro")).toBeHidden();
-      expect(errors).toEqual([]);
-      await context.close();
-    });
-  }
-
-  test("móvil: tras entrar, la barra inferior está visible, abajo y sin filtros que cambien (sin recargar)", async ({ browser }) => {
-    const context = await browser.newContext({ viewport: VIEWPORTS.movil, hasTouch: true, isMobile: true });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    const filterOf = () => page.locator(".wii-bar").evaluate((el) => getComputedStyle(el).filter);
-    expect(await filterOf()).toBe("none"); // ni siquiera mientras la intro está activa
-    await page.locator(".wii-intro").tap();
-    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen", { timeout: 3000 });
-    expect(await filterOf()).toBe("none");
-    const bar = page.locator(".wii-bar");
-    await expect(bar).toBeVisible();
-    const box = (await bar.boundingBox())!;
-    expect(Math.round(box.y + box.height)).toBe(VIEWPORTS.movil.height);
-    await expect(page.getByRole("button", { name: "Menú", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Contacto", exact: true })).toBeVisible();
-    await context.close();
-  });
-
-  test("el contenido queda inerte mientras la intro está activa", async ({ browser }) => {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    expect(await page.locator(".wii-stage").evaluate((el) => (el as HTMLElement).inert)).toBe(true);
-    await page.keyboard.press("Enter");
-    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen", { timeout: 3000 });
-    expect(await page.locator(".wii-stage").evaluate((el) => (el as HTMLElement).inert)).toBe(false);
-    await context.close();
-  });
-
-  test("con movimiento reducido entra igualmente y sin esperas", async ({ browser }) => {
-    const context = await browser.newContext({ reducedMotion: "reduce" });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    await page.keyboard.press("Enter");
-    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen", { timeout: 1000 });
-    await expect(covers(page).first()).toBeVisible();
-    await context.close();
-  });
-
-  test("sin JavaScript la web se ve igualmente", async ({ browser }) => {
-    const context = await browser.newContext({ javaScriptEnabled: false });
+test.describe("pantalla de bienvenida", () => {
+  test("aparece sola, sin clic, y se retira difuminándose hacia el menú", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: VIEWPORTS.escritorio });
     const page = await context.newPage();
     await page.goto("/");
-    await expect(page.locator(".wii-intro")).toBeHidden();
-    await expect(page.getByRole("button", { name: "Menú", exact: true })).toBeVisible();
-    await expect(covers(page).first()).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-intro", "active");
+    await expect(page.locator(".nv-splash")).toBeVisible();
+    await expect(page.locator(".nv-splash__logo")).toBeVisible();
+    // Sin tocar nada: pasa a "leaving" y luego "seen".
+    await expect(page.locator("html")).toHaveAttribute("data-intro", "leaving", { timeout: 4000 });
+    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen", { timeout: 3000 });
+    await expect(page.locator(".nv-splash")).toBeHidden();
+    await expect(page.locator(".nv-tile")).toHaveCount(4);
+    await context.close();
+  });
+
+  test("el contenido está inerte mientras se ve y no reaparece al navegar", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: VIEWPORTS.escritorio });
+    const page = await context.newPage();
+    await page.goto("/");
+    expect(await page.locator("[data-night-content]").first().evaluate((el) => (el as HTMLElement).inert)).toBe(true);
+    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen", { timeout: 6000 });
+    await page.getByRole("link", { name: /^MUSIC/ }).click();
+    await expect(page).toHaveURL(/\/music$/);
+    await page.getByRole("link", { name: "Main menu" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen");
+    await expect(page.locator(".nv-splash")).toBeHidden();
+    // Recargar en la misma sesión tampoco la repite.
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen");
+    await context.close();
+  });
+
+  test("un enlace directo a un beat no muestra la intro", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: VIEWPORTS.movil });
+    const page = await context.newPage();
+    await page.goto("/music/demo-02");
+    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen");
+    await expect(page.locator(".nv-info__title")).toBeVisible();
+    await context.close();
+  });
+
+  test("con movimiento reducido no hay intro", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("data-intro", "seen");
+    await expect(page.locator(".nv-tile").first()).toBeVisible();
+    await context.close();
+  });
+
+  test("sin JavaScript el menú se ve igualmente", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false, viewport: VIEWPORTS.escritorio });
+    const page = await context.newPage();
+    await page.goto("/");
+    await expect(page.locator(".nv-tile").first()).toBeVisible();
     await context.close();
   });
 });
 
-test.describe("Music: display flotante", () => {
-  const ringAngle = (page: Page) =>
-    page.locator(".music-ring").evaluate((el) => (el as HTMLElement).style.transform);
-
-  test("muestra los proyectos de demostración como portadas 3D claramente marcadas", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    const errors = collectErrors(page);
-    await page.goto("/", { waitUntil: "networkidle" });
-    await expect(covers(page)).toHaveCount(6);
-    await expect(page.locator(".music-ring")).toHaveCSS("transform-style", "preserve-3d");
-    await expect(page.locator(".music-stage")).toHaveCSS("perspective", /\d+px/);
-    await expect(page.locator(".music-caption__demo")).toHaveText("Demostración");
-    await expect(covers(page).first()).toHaveAccessibleName(/Proyecto de ejemplo 01.*demostración/);
-    expect(errors).toEqual([]);
+test.describe("menú principal", () => {
+  test("cuatro recuadros en una fila en escritorio, con su destino", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/");
+    const tiles = page.locator(".nv-tile");
+    await expect(tiles).toHaveCount(4);
+    const boxes = await tiles.evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
+    expect(new Set(boxes.map((b) => Math.round(b.top))).size).toBe(1);
+    expect(await tiles.evaluateAll((els) => els.map((e) => e.textContent))).toEqual([
+      expect.stringContaining("HOME"),
+      expect.stringContaining("MUSIC"),
+      expect.stringContaining("ARCHIVES"),
+      expect.stringContaining("ABOUT"),
+    ]);
+    expect(await tiles.evaluateAll((els) => els.map((e) => e.getAttribute("href")))).toEqual(["/home", "/music", "/archives", "/about"]);
+    await noOverflow(page);
     await context.close();
   });
 
-  test("gira sola, se detiene al pasar el cursor y la portada frontal se destaca", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    await page.mouse.move(5, 450); // lejos de las portadas
-    const t0 = await ringAngle(page);
-    await page.waitForTimeout(700);
-    expect(await ringAngle(page)).not.toBe(t0);
-
-    // Cursor sobre una portada: el anillo se detiene.
-    const box = (await page.locator(".music-cover[data-front=true] .music-cover__btn").boundingBox())!;
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.waitForTimeout(150);
-    const frozen = await ringAngle(page);
-    await page.waitForTimeout(600);
-    expect(await ringAngle(page)).toBe(frozen);
+  test("móvil: rejilla 2 × 2 sin desbordes", async ({ browser }) => {
+    const { context, page } = await open(browser, VIEWPORTS.movil);
+    await page.goto("/");
+    const boxes = await page.locator(".nv-tile").evaluateAll((els) => els.map((e) => e.getBoundingClientRect()));
+    expect(new Set(boxes.map((b) => Math.round(b.top))).size).toBe(2);
+    expect(new Set(boxes.map((b) => Math.round(b.left))).size).toBe(2);
+    await noOverflow(page);
     await context.close();
   });
 
-  test("las flechas y el teclado cambian de proyecto", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    await page.mouse.move(5, 450);
-    const title = page.locator(".music-caption__title");
-    const first = await title.innerText();
-    await page.getByRole("button", { name: "Proyecto siguiente" }).click();
-    await expect(title).not.toHaveText(first);
-    const second = await title.innerText();
-    await page.keyboard.press("ArrowLeft");
-    await expect(title).not.toHaveText(second);
+  test("al pasar el cursor el recuadro se eleva y se ilumina en verde", async ({ browser }) => {
+    const { context, page } = await open(browser, VIEWPORTS.escritorio, { reducedMotion: "no-preference" });
+    await page.addInitScript(() => sessionStorage.setItem("atw_intro_seen", "1"));
+    await page.goto("/");
+    const tile = page.locator(".nv-tile").nth(1);
+    const before = await tile.evaluate((e) => getComputedStyle(e).borderTopColor);
+    await tile.hover();
+    await page.waitForTimeout(500);
+    const after = await tile.evaluate((e) => ({ color: getComputedStyle(e).borderTopColor, t: getComputedStyle(e).transform }));
+    expect(after.color).not.toBe(before);
+    expect(after.t).not.toBe("none");
     await context.close();
   });
 
-  test("al hacer clic en una portada se abre el detalle, con teclado se cierra y devuelve el foco", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    await covers(page).nth(2).dispatchEvent("click"); // las portadas se solapan en 3D: se dispara el clic sobre la elegida
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Proyecto de ejemplo 03");
-    await expect(dialog).toContainText("Contenido de demostración");
-    await expect(dialog.getByRole("heading", { name: "Canciones" })).toBeVisible();
-    await expect(dialog.locator("ol li")).toHaveCount(1);
-    expect(await page.locator(".music").evaluate((el) => (el as HTMLElement).inert)).toBe(true);
-    await page.keyboard.press("Escape");
-    await expect(dialog).toHaveCount(0);
-    await expect(page.locator(".music")).not.toHaveAttribute("inert", "");
-    await context.close();
-  });
-
-  test("con movimiento reducido no gira sola pero se puede navegar", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio, reducedMotion: "reduce" });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    const t0 = await ringAngle(page);
-    await page.waitForTimeout(800);
-    expect(await ringAngle(page)).toBe(t0);
-    const first = await page.locator(".music-caption__title").innerText();
-    await page.getByRole("button", { name: "Proyecto siguiente" }).click();
-    await expect(page.locator(".music-caption__title")).not.toHaveText(first);
-    await context.close();
-  });
-
-  test("móvil y tableta: sin desbordes y con navegación y flechas visibles", async ({ browser }) => {
-    for (const viewport of [VIEWPORTS.movil, { width: 820, height: 1180 }]) {
-      const context = await seenContext(browser, { viewport });
-      const page = await context.newPage();
-      await page.goto("/", { waitUntil: "networkidle" });
-      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
-      await expect(page.getByRole("button", { name: "Proyecto siguiente" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Menú", exact: true })).toBeVisible();
-      await covers(page).nth(1).dispatchEvent("click");
-      await expect(page.getByRole("dialog")).toBeVisible();
-      await context.close();
-    }
-  });
-
-  test("el detalle tiene reproductor y botón Comprar que va a BeatStars", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    await covers(page).first().dispatchEvent("click");
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-    const play = dialog.getByRole("button", { name: /^Reproducir Pista de ejemplo 1$/ });
-    await expect(play).toBeVisible();
-    await play.click();
-    await expect(dialog.getByRole("button", { name: "Pausar", exact: true })).toBeVisible();
-    await expect(dialog.getByRole("slider", { name: "Posición de la canción" })).toBeVisible();
-    const buy = dialog.getByRole("link", { name: /Comprar en BeatStars/ }).first();
-    await expect(buy).toHaveAttribute("href", /^https:\/\/(www\.)?beatstars\.com/);
-    await expect(buy).toHaveAttribute("target", "_blank");
-    await expect(buy).toHaveAttribute("rel", /noopener/);
-    await page.keyboard.press("Escape");
-    await expect(dialog).toHaveCount(0);
-    await context.close();
-  });
-
-  test("al pasar el cursor por un proyecto, el fondo de la página cambia a su imagen y la portada no cambia", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    const bg = page.locator(".music-bg__img");
-    await expect(bg).toHaveCount(1); // solo los proyectos con imagen de fondo
-    await expect(bg).toHaveCSS("opacity", "0");
-    await expect(page.locator(".music-cover__hover")).toHaveCount(0);
-    await covers(page).first().focus();
-    await expect(bg).toHaveCSS("opacity", "1");
-    await covers(page).first().blur();
-    await expect(bg).toHaveCSS("opacity", "0");
-    await context.close();
-  });
-
-  test("móvil: el detalle ocupa la ventana, la página no se desplaza y la barra de reproducción queda dentro", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.movil, hasTouch: true, isMobile: true });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    await covers(page).first().dispatchEvent("click");
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: /^Reproducir Pista de ejemplo 1$/ }).click();
-    const player = page.locator(".album-player");
-    await expect(player).toBeVisible();
-    const box = (await dialog.boundingBox())!;
-    const pbox = (await player.boundingBox())!;
-    expect(box.x).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width).toBeLessThanOrEqual(VIEWPORTS.movil.width);
-    expect(box.y).toBeGreaterThanOrEqual(0);
-    expect(box.y + box.height).toBeLessThanOrEqual(VIEWPORTS.movil.height);
-    expect(pbox.y + pbox.height).toBeLessThanOrEqual(box.y + box.height);
-    expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe("hidden");
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
-    expect(await dialog.evaluate((el) => getComputedStyle(el).overflow)).toBe("hidden");
-    await context.close();
-  });
-
-  test("el menú de la barra lleva a Music, References y About", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/", { waitUntil: "networkidle" });
-    const menu = page.getByRole("button", { name: "Menú", exact: true });
-    await menu.click();
-    await page.locator("#panel-menu").getByRole("link", { name: "About" }).click();
-    await expect(page).toHaveURL(/\/about$/);
-    await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
-    await menu.click();
-    await page.locator("#panel-menu").getByRole("link", { name: "References" }).click();
-    await expect(page).toHaveURL(/\/referencias$/);
-    await expect(channels(page).first()).toBeVisible();
-    await context.close();
-  });
-});
-
-test.describe("menú de canales", () => {
-  const cases: [string, { width: number; height: number }, number][] = [
-    ["móvil", VIEWPORTS.movil, 2],
-    ["tableta", { width: 820, height: 1180 }, 3],
-    ["escritorio", VIEWPORTS.escritorio, 4],
-  ];
-  for (const [name, viewport, columns] of cases) {
-    test(`${columns} columnas y sin desbordes · ${name}`, async ({ browser }) => {
-      const context = await seenContext(browser, { viewport });
-      const page = await context.newPage();
-      await page.goto("/referencias", { waitUntil: "networkidle" });
-      const cols = await page.evaluate(
-        () => getComputedStyle(document.querySelector(".wii-grid")!).gridTemplateColumns.split(" ").length,
-      );
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect(cols).toBe(columns);
-      expect(overflow).toBe(0);
-      await context.close();
-    });
-  }
-
-  test("escritorio: 4 × 3 huecos entran sin desplazamiento y la barra no los tapa", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    await expect(page.locator(".wii-grid > li")).toHaveCount(12);
-    await page.waitForTimeout(1500); // fin de la entrada escalonada
-    const boxes = await page.locator(".wii-grid > li").evaluateAll((els) =>
-      els.map((e) => {
-        const r = e.getBoundingClientRect();
-        return { top: Math.round(r.top), bottom: r.bottom };
-      }),
-    );
-    expect(new Set(boxes.map((b) => b.top)).size).toBe(3);
-    const barTop = (await page.locator(".wii-bar").boundingBox())!.y;
-    expect(Math.max(...boxes.map((b) => b.bottom))).toBeLessThanOrEqual(barTop);
-    await context.close();
-  });
-
-  test("las referencias salen de los datos (14): 11 + disco en la página 1 y 3 + huecos vacíos en la 2", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    await expect(channels(page).first().locator("a")).toHaveText("Estudio de forma 001");
-    await expect(page.getByRole("button", { name: "Página anterior" })).toHaveCount(0);
-    await expect(channels(page)).toHaveCount(11);
-    await expect(page.locator(".wii-grid > li")).toHaveCount(12);
-    await page.getByRole("button", { name: "Página siguiente" }).click();
-    await expect(channels(page)).toHaveCount(3);
-    await expect(page.locator(".wii-slot--empty")).toHaveCount(9); // huecos vacíos, nunca referencias falsas
-    await expect(page.locator(".wii-slot--disc")).toHaveCount(0);
-    await expect(channels(page).first().locator("a")).toHaveText("Estudio de forma 012");
-    await expect(page.getByRole("button", { name: "Página siguiente" })).toHaveCount(0);
-    await page.keyboard.press("ArrowLeft");
-    await expect(channels(page)).toHaveCount(11);
-    await page.keyboard.press("ArrowRight");
-    await expect(channels(page)).toHaveCount(3);
-    await context.close();
-  });
-
-  test("móvil: textos largos e imágenes quedan dentro de sus cajas (menú y ficha)", async ({ browser }) => {
-    for (const width of [360, 390]) {
-      const context = await seenContext(browser, { viewport: { width, height: 800 }, hasTouch: true, isMobile: true });
-      const page = await context.newPage();
-      await page.goto("/referencias", { waitUntil: "networkidle" });
-      await page.evaluate(() => {
-        document.querySelectorAll(".wii-channel").forEach((li, i) => {
-          const a = li.querySelector(".wii-channel__title a");
-          if (a) a.textContent = i % 2 ? `Colección de verano muy larga con título extenso ${i}` : `Superlongtitlewithoutspaces${i}xxxxxxxxxxxxxxxxxxxx`;
-        });
-      });
-      await page.waitForTimeout(300);
-      const bad = await page.evaluate(() =>
-        [...document.querySelectorAll(".wii-channel")].flatMap((li) => {
-          const r = li.getBoundingClientRect();
-          return [...li.querySelectorAll("*")].filter((e) => {
-            const q = e.getBoundingClientRect();
-            return q.width > 0 && (q.bottom > r.bottom + 1 || q.right > r.right + 1 || q.left < r.left - 1);
-          }).length
-            ? [li.querySelector("a")?.textContent]
-            : [];
-        }),
-      );
-      expect(bad).toEqual([]);
-      // La imagen de cada canal conserva una altura útil (no queda aplastada por el texto).
-      const media = (await page.locator(".wii-channel__media").first().boundingBox())!;
-      expect(media.height).toBeGreaterThan(90);
-
-      await page.goto("/referencias/estudio-de-forma-001", { waitUntil: "networkidle" });
-      await page.evaluate(() => {
-        const t = document.querySelector(".wii-detail__title");
-        if (t) t.textContent = "Superlongtitlewithoutspacesxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-        const d = document.querySelector(".wii-detail__text");
-        if (d) d.textContent = "https://example.com/" + "a".repeat(120);
-      });
-      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
-      const card = (await page.locator(".wii-detail__card").boundingBox())!;
-      for (const fig of await page.locator(".wii-detail__fig").all()) {
-        const f = (await fig.boundingBox())!;
-        expect(f.x).toBeGreaterThanOrEqual(card.x);
-        expect(f.x + f.width).toBeLessThanOrEqual(card.x + card.width + 1);
-        const img = (await fig.locator("img").boundingBox())!;
-        expect(img.width).toBeLessThanOrEqual(f.width + 1);
-        expect(img.height).toBeLessThanOrEqual(f.height + 1);
-      }
-      for (const sel of [".wii-detail__title", ".wii-detail__text"]) {
-        const b = (await page.locator(sel).boundingBox())!;
-        expect(b.x + b.width).toBeLessThanOrEqual(card.x + card.width + 1);
-      }
-      await context.close();
-    }
-  });
-
-  test("la ficha vuelve a la misma página del menú y conserva la información", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    await page.getByRole("button", { name: "Página siguiente" }).click();
-    await channels(page).first().locator("a").click();
-    await expect(page).toHaveURL(/estudio-de-forma-012$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Estudio de forma 012");
-    await expect(page.locator(".wii-detail__text")).not.toBeEmpty();
-    await expect(page.locator(".wii-detail__meta")).toContainText("Estudio");
-    await page.getByRole("link", { name: /Volver al menú/ }).click();
-    await expect(page).toHaveURL(/\/referencias$/);
-    await expect(channels(page)).toHaveCount(3);
-    await context.close();
-  });
-
-  test("el primer hueco es un disco que gira, decorativo y fijo en su sitio", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    const first = page.locator(".wii-grid > li").first();
-    await expect(first).toHaveClass(/wii-slot--disc/);
-    await expect(first).toHaveAttribute("aria-hidden", "true");
-    await expect(first.locator("a, button")).toHaveCount(0);
-    await expect(first.locator(".wii-cd")).toHaveCSS("animation-name", "wii-cd-spin");
-    await context.close();
-    const quiet = await seenContext(browser, { reducedMotion: "reduce" });
-    const p2 = await quiet.newPage();
-    await p2.goto("/referencias", { waitUntil: "networkidle" });
-    await expect(p2.locator(".wii-cd")).toHaveCSS("animation-name", "none");
-    await quiet.close();
-  });
-
-  test("el enlace se llama como el título visible (WCAG 2.5.3) y un clic en la imagen abre la ficha", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    await expect(channels(page).first().locator("a")).toHaveText("Estudio de forma 001");
-    const box = (await channels(page).first().locator(".wii-channel__media").boundingBox())!;
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    await expect(page).toHaveURL(/estudio-de-forma-001$/);
-    await context.close();
-  });
-
-  test("el teclado recorre los canales en orden y el foco se ve", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    await page.keyboard.press("Tab");
-    expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe("Saltar al contenido");
-    await page.keyboard.press("Tab");
-    expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe("Estudio de forma 001");
-    const outline = await page.evaluate(() => getComputedStyle(document.querySelector(".wii-channel")!).boxShadow);
-    expect(outline).not.toBe("none"); // halo azul de foco
-    await page.keyboard.press("Tab");
-    expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe("Estudio de forma 002");
-    await context.close();
-  });
-
-  test("al pasar el cursor el canal se eleva con halo y aparece la segunda imagen", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    await page.mouse.move(2, 2);
-    const card = channels(page).first();
-    const second = card.locator(".wii-channel__hover");
-    await expect(second).toHaveCSS("opacity", "0");
-    await card.hover();
-    await expect(second).toHaveCSS("opacity", "1");
-    await expect(card).toHaveCSS("border-top-color", "rgb(54, 179, 238)");
-    expect(await card.evaluate((el) => getComputedStyle(el).transform)).not.toBe("none");
-    await context.close();
-  });
-
-  test("sin imagen (o si falla) hay un sustituto elegante", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    await context.route("**/ejemplos/**", (route) => route.abort());
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    await expect(page.locator(".wii-channel__fallback").first()).toBeVisible();
-    await expect(channels(page).first().locator("a")).toHaveText("Estudio de forma 001");
-    await context.close();
-  });
-
-  test("con movimiento reducido no hay transición", async ({ browser }) => {
-    const context = await seenContext(browser, { reducedMotion: "reduce" });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    const duration = await channels(page).first().evaluate((el) => getComputedStyle(el).transitionDuration);
-    expect(parseFloat(duration)).toBeLessThan(0.001);
-    await context.close();
-  });
-});
-
-test.describe("cursor propio", () => {
-  test("con puntero fino aparece, reacciona sobre los canales y al clic", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    // Antes de mover el ratón el cursor nativo sigue visible.
-    await expect(page.locator("html")).not.toHaveClass(/wii-cursor-on/);
-    await page.mouse.move(5, 5);
-    await expect(page.locator("html")).toHaveClass(/wii-cursor-on/);
-    await expect(page.locator(".wii-cursor")).toHaveAttribute("data-hover", "false");
-    const box = (await channels(page).first().boundingBox())!;
-    await page.mouse.move(box.x + 40, box.y + 40);
-    await expect(page.locator(".wii-cursor")).toHaveAttribute("data-hover", "true");
-    await page.mouse.down();
-    await expect(page.locator(".wii-cursor")).toHaveAttribute("data-down", "true");
-    await page.mouse.up();
-    await context.close();
-  });
-
-  test("en pantallas táctiles no se activa ni se oculta el cursor nativo", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.movil, hasTouch: true, isMobile: true });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    await page.touchscreen.tap(200, 300);
-    await expect(page.locator("html")).not.toHaveClass(/wii-cursor-on/);
+  test("entrar en una sección muestra la barra inferior con su estado activo", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/");
+    await expect(page.getByRole("navigation", { name: "Main" })).toHaveCount(0);
+    await page.locator(".nv-tile").nth(2).click();
+    await expect(page).toHaveURL(/\/archives$/);
+    const bar = page.getByRole("navigation", { name: "Main" });
+    await expect(bar.getByRole("link", { name: "ARCHIVES" })).toHaveAttribute("aria-current", "page");
+    await expect(bar.getByRole("link", { name: "MUSIC" })).not.toHaveAttribute("aria-current", "page");
     await context.close();
   });
 });
 
 test.describe("barra inferior", () => {
-  test("fecha en español que coincide con el día actual", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio, locale: "es-ES" });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    const shown = await page.locator(".wii-date__long").innerText();
-    const expected = await page.evaluate(() => {
-      const s = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
-      return s.charAt(0).toUpperCase() + s.slice(1);
+  for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
+    test(`casa, cuatro secciones y contacto, pegada abajo y sin desbordes · ${vpName}`, async ({ browser }) => {
+      const { context, page } = await open(browser, viewport);
+      await page.goto("/about");
+      const bar = page.getByRole("navigation", { name: "Main" });
+      await expect(bar.getByRole("link", { name: "Main menu" })).toHaveAttribute("href", "/");
+      await expect(bar.getByRole("link", { name: "Contact" })).toHaveAttribute("href", "/contact");
+      for (const label of ["HOME", "MUSIC", "ARCHIVES", "ABOUT"]) await expect(bar.getByRole("link", { name: label })).toBeVisible();
+      await expect(bar.getByRole("link", { name: "ABOUT" })).toHaveAttribute("aria-current", "page");
+      const box = (await bar.boundingBox())!;
+      expect(Math.round(box.y + box.height)).toBe(viewport.height);
+      for (const l of await bar.getByRole("link").all()) {
+        const b = (await l.boundingBox())!;
+        expect(b.x).toBeGreaterThanOrEqual(0);
+        expect(b.x + b.width).toBeLessThanOrEqual(viewport.width);
+      }
+      await noOverflow(page);
+      await context.close();
     });
-    expect(shown).toBe(expected);
-    expect(shown).toMatch(/^(Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo), \d{1,2} de [a-záéíóú]+$/);
-    await expect(page.locator(".wii-date__time")).toHaveText(/^\d{2}:\d{2}$/);
+  }
+
+  test("la navegación lleva a cada sección y a contacto", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/about");
+    const bar = page.getByRole("navigation", { name: "Main" });
+    await bar.getByRole("link", { name: "MUSIC" }).click();
+    await expect(page).toHaveURL(/\/music/);
+    await bar.getByRole("link", { name: "HOME" }).click();
+    await expect(page).toHaveURL(/\/home$/);
+    await bar.getByRole("link", { name: "Contact" }).click();
+    await expect(page).toHaveURL(/\/contact$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Contact");
+    await context.close();
+  });
+});
+
+test.describe("Music", () => {
+  test("un enlace directo enfoca ese beat y muestra su ficha, sin reproducir nada", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/music/demo-02");
+    await expect(page.locator(".nv-info__title")).toHaveText("Low Orbit (demo)");
+    await expect(page.locator(".nv-meta")).toContainText("86");
+    await expect(page.locator(".nv-meta")).toContainText("A minor");
+    await expect(page.locator("audio")).toHaveCount(1);
+    expect(await page.locator("audio").evaluate((a: HTMLAudioElement) => a.paused && !a.currentSrc)).toBe(true);
+    await expect(page.getByRole("button", { name: "Play Low Orbit (demo)" })).toBeVisible();
     await context.close();
   });
 
-  test("Menú (casa) y Contacto (postal) son botones circulares con icono", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    for (const name of ["Menú", "Contacto"]) {
-      const orb = page.getByRole("button", { name, exact: true });
-      await expect(orb.locator("svg")).toHaveCount(1);
-      const box = (await orb.boundingBox())!;
-      expect(Math.abs(box.width - box.height)).toBeLessThan(1);
-      await expect(orb).toHaveCSS("border-radius", /999px|50%/);
+  test("las flechas y el teclado cambian de beat y actualizan la dirección compartible", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/music");
+    await expect(page.locator(".nv-info__title")).toHaveText("Midnight Static (demo)");
+    await page.getByRole("button", { name: "Next beat" }).click();
+    await expect(page.locator(".nv-info__title")).toHaveText("Low Orbit (demo)");
+    await expect(page).toHaveURL(/\/music\/demo-02$/);
+    await page.keyboard.press("ArrowRight");
+    await expect(page).toHaveURL(/\/music\/demo-03$/);
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    await expect(page).toHaveURL(/\/music\/demo-01$/);
+    await expect(page.getByRole("button", { name: "Previous beat" })).toBeDisabled();
+    await expect(page.locator(".nv-music__count")).toContainText("01 / 06");
+    await context.close();
+  });
+
+  test("tocar una portada no activa la enfoca; tocar la enfocada reproduce", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/music");
+    await page.getByRole("button", { name: "Select Low Orbit (demo)" }).click();
+    await expect(page.locator(".nv-info__title")).toHaveText("Low Orbit (demo)");
+    expect(await page.locator("audio").evaluate((a: HTMLAudioElement) => a.paused)).toBe(true);
+    await page.getByRole("button", { name: /^Low Orbit \(demo\) — play/ }).click();
+    await expect(page.getByRole("button", { name: "Pause Low Orbit (demo)" })).toBeVisible();
+    await context.close();
+  });
+
+  test("un único reproductor: reproducir, pausar, buscar, y al cambiar de beat el anterior se detiene", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/music/demo-01");
+    const audio = page.locator("audio");
+    await page.getByRole("button", { name: "Play Midnight Static (demo)" }).click();
+    await expect(page.getByRole("button", { name: "Pause Midnight Static (demo)" })).toBeVisible();
+    expect(await audio.evaluate((a: HTMLAudioElement) => !a.paused || a.currentTime > 0)).toBe(true);
+    await expect(page.locator(".nv-player__range")).toBeEnabled();
+    await expect(page.locator(".nv-player__status")).toContainText(/Now playing|Loading/);
+    await page.getByRole("button", { name: "Pause Midnight Static (demo)" }).click();
+    expect(await audio.evaluate((a: HTMLAudioElement) => a.paused)).toBe(true);
+    await page.getByRole("button", { name: "Play Midnight Static (demo)" }).click();
+    await page.getByRole("button", { name: "Next beat" }).click();
+    expect(await audio.evaluate((a: HTMLAudioElement) => a.paused && !a.getAttribute("src"))).toBe(true);
+    await expect(page.getByRole("button", { name: "Play Low Orbit (demo)" })).toBeVisible();
+    await expect(audio).toHaveCount(1);
+    await context.close();
+  });
+
+  test("la música sigue al cambiar de sección, con mini reproductor para pausarla", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/music/demo-01");
+    await page.getByRole("button", { name: "Play Midnight Static (demo)" }).click();
+    await expect(page.getByRole("button", { name: "Pause Midnight Static (demo)" })).toBeVisible();
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "ABOUT" }).click();
+    const mini = page.getByRole("region", { name: "Now playing" });
+    await expect(mini).toBeVisible();
+    await expect(mini).toContainText("Midnight Static (demo)");
+    await mini.getByRole("button", { name: /^Pause/ }).click();
+    expect(await page.locator("audio").evaluate((a: HTMLAudioElement) => a.paused)).toBe(true);
+    await mini.getByRole("link").click();
+    await expect(page).toHaveURL(/\/music\/demo-01$/);
+    await context.close();
+  });
+
+  test("BUY BEAT abre Traktrain de forma segura: enlace propio o, si falta, el perfil", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/music/demo-01"); // sin enlace propio
+    let buy = page.getByRole("link", { name: /^BUY BEAT/ });
+    await expect(buy).toHaveAttribute("href", OFFICIAL.traktrain);
+    await expect(buy).toHaveAttribute("target", "_blank");
+    expect(await buy.getAttribute("rel")).toMatch(/noopener/);
+    expect(await buy.getAttribute("rel")).toMatch(/noreferrer/);
+    await page.goto("/music/demo-02");
+    buy = page.getByRole("link", { name: /^BUY BEAT/ });
+    await expect(buy).toHaveAttribute("href", /^https:\/\/traktrain\.com\//);
+    await context.close();
+  });
+
+  test("desde un Reel en el móvil: escuchar y comprar están a la vista, sin desplazarse", async ({ browser }) => {
+    const { context, page } = await open(browser, VIEWPORTS.movil, { isMobile: true, hasTouch: true });
+    await page.goto("/music/demo-02");
+    const bar = (await page.getByRole("navigation", { name: "Main" }).boundingBox())!;
+    for (const target of [page.getByRole("button", { name: "Play Low Orbit (demo)" }), page.getByRole("link", { name: /^BUY BEAT/ })]) {
+      const b = (await target.boundingBox())!;
+      expect(b.y).toBeGreaterThanOrEqual(0);
+      expect(b.y + b.height).toBeLessThanOrEqual(bar.y);
+      expect(b.height).toBeGreaterThanOrEqual(44);
     }
-    const left = (await page.getByRole("button", { name: "Menú", exact: true }).boundingBox())!;
-    const right = (await page.getByRole("button", { name: "Contacto", exact: true }).boundingBox())!;
-    expect(left.x).toBeLessThan(100);
-    expect(right.x + right.width).toBeGreaterThan(1340);
+    await noOverflow(page);
+    // Un toque para reproducir.
+    await page.getByRole("button", { name: "Play Low Orbit (demo)" }).tap();
+    await expect(page.getByRole("button", { name: "Pause Low Orbit (demo)" })).toBeVisible();
     await context.close();
   });
 
-  test("los paneles de Menú y Contacto se abren y se cierran (X, Escape, clic fuera)", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-
-    const menu = page.getByRole("button", { name: "Menú", exact: true });
-    await menu.click();
-    const panel = page.getByRole("dialog", { name: "Menú" });
-    await expect(panel).toBeVisible();
-    await expect(panel.getByRole("link", { name: "References" })).toBeVisible();
-    await page.getByRole("button", { name: "Cerrar menú" }).click();
-    await expect(panel).toHaveCount(0);
-    await expect(menu).toBeFocused();
-
-    await page.getByRole("button", { name: "Contacto" }).click();
-    const contact = page.getByRole("dialog", { name: "Contacto" });
-    await expect(contact).toBeVisible();
-    // Sin datos configurados no se inventa ninguno.
-    await expect(contact).toContainText("Todavía no hay datos de contacto publicados.");
-    await expect(contact.locator("a")).toHaveCount(0);
-    await page.keyboard.press("Escape");
-    await expect(contact).toHaveCount(0);
-
-    await menu.click();
-    await expect(panel).toBeVisible();
-    await page.mouse.click(600, 300);
-    await expect(panel).toHaveCount(0);
+  test("deslizar con el dedo cambia de beat", async ({ browser }) => {
+    const { context, page } = await open(browser, VIEWPORTS.movil, { isMobile: true, hasTouch: true });
+    await page.goto("/music/demo-02");
+    const reel = (await page.locator(".nv-reel").boundingBox())!;
+    const y = reel.y + 120;
+    await page.mouse.move(reel.x + 300, y);
+    await page.mouse.down();
+    await page.mouse.move(reel.x + 150, y, { steps: 8 });
+    await page.mouse.up();
+    await expect(page.locator(".nv-info__title")).toHaveText("Concrete Dreams (demo)");
     await context.close();
   });
 
-  test("el botón del menú lleva de vuelta a la cuadrícula desde una ficha", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.escritorio });
-    const page = await context.newPage();
-    await page.goto("/referencias/estudio-de-forma-001", { waitUntil: "networkidle" });
-    await page.getByRole("button", { name: "Menú", exact: true }).click();
-    await page.getByRole("link", { name: "References" }).click();
-    await expect(page).toHaveURL(/\/referencias$/);
-    await expect(channels(page).first()).toBeVisible();
+  for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
+    test(`sin desbordes y con la barra y las flechas bien colocadas · ${vpName}`, async ({ browser }) => {
+      const { context, page } = await open(browser, viewport);
+      await page.goto("/music/demo-03");
+      await noOverflow(page);
+      const reel = (await page.locator(".nv-reel").boundingBox())!;
+      expect(reel.x).toBeGreaterThanOrEqual(0);
+      expect(reel.x + reel.width).toBeLessThanOrEqual(viewport.width + 1);
+      await context.close();
+    });
+  }
+
+  test("al enfocar un beat, el fondo de la página muestra su imagen", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/music/demo-01");
+    await expect(page.locator(".nv-music__bgimg")).toBeVisible();
+    const src = await page.locator(".nv-music__bgimg").getAttribute("src");
+    await page.getByRole("button", { name: "Next beat" }).click();
+    await expect.poll(async () => page.locator(".nv-music__bgimg").getAttribute("src")).not.toBe(src);
     await context.close();
   });
 
-  test("en móvil conserva las tres funciones sin desbordes", async ({ browser }) => {
-    const context = await seenContext(browser, { viewport: VIEWPORTS.movil });
-    const page = await context.newPage();
-    await page.goto("/referencias", { waitUntil: "networkidle" });
-    await expect(page.getByRole("button", { name: "Menú", exact: true })).toBeVisible();
-    await expect(page.locator(".wii-date__short")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Contacto" })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBe(0);
-    await page.getByRole("button", { name: "Contacto" }).click();
-    await expect(page.getByRole("dialog", { name: "Contacto" })).toBeVisible();
+  test("compartir sin menú del sistema copia el enlace del beat", async ({ browser }) => {
+    const { context, page } = await open(browser, VIEWPORTS.escritorio, { permissions: ["clipboard-read", "clipboard-write"] });
+    await page.addInitScript(() => Object.defineProperty(navigator, "share", { value: undefined }));
+    await page.goto("/music/demo-02");
+    await page.getByRole("button", { name: "Share Low Orbit (demo)" }).click();
+    await expect(page.getByText("Link copied")).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/music\/demo-02$/);
+    await context.close();
+  });
+
+  test("la página de un beat tiene metadatos para compartir", async ({ request }) => {
+    const html = await (await request.get("/music/demo-02")).text();
+    expect(html).toContain("Low Orbit (demo)");
+    expect(html).toMatch(/property="og:title"/);
+    expect(html).toMatch(/rel="canonical"/);
+  });
+});
+
+test.describe("Home, Archives, About y contacto", () => {
+  test("Home enlaza con el beat destacado y con Music", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/home");
+    await page.getByRole("link", { name: "Listen to the beats" }).click();
+    await expect(page).toHaveURL(/\/music\/demo-01$/);
+    await context.close();
+  });
+
+  test("Archives muestra todas las referencias en una cuadrícula asimétrica y abre su detalle", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/archives");
+    await expect(page.locator(".nv-tile-ref")).toHaveCount(14);
+    const sizes = await page.locator(".nv-tile-ref").evaluateAll((els) => els.map((e) => `${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)}`));
+    expect(new Set(sizes).size).toBeGreaterThan(2);
+    await noOverflow(page);
+    await page.locator(".nv-tile-ref__link").first().click();
+    await expect(page).toHaveURL(/\/archives\/estudio-de-forma-001$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Estudio de forma 001");
+    await page.getByRole("link", { name: /Back to archives/ }).click();
+    await expect(page).toHaveURL(/\/archives$/);
+    await context.close();
+  });
+
+  for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
+    test(`Archives y su detalle sin desbordes · ${vpName}`, async ({ browser }) => {
+      const { context, page } = await open(browser, viewport);
+      for (const path of ["/archives", "/archives/estudio-de-forma-002"]) {
+        await page.goto(path);
+        await noOverflow(page);
+      }
+      await context.close();
+    });
+  }
+
+  test("About está en inglés y no añade datos inventados", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/about");
+    await expect(page.locator("main")).toContainText("independent creative project based in Spain");
+    await expect(page.locator("main")).toContainText("Independent by nature. Creative without boundaries.");
+    await context.close();
+  });
+
+  test("Contacto: todos los canales con los enlaces oficiales y apertura segura", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/contact");
+    for (const href of Object.values(OFFICIAL)) {
+      const link = page.locator(".nv-contact").locator(`a[href="${href}"]`);
+      await expect(link).toHaveCount(1);
+      await expect(link).toHaveAttribute("target", "_blank");
+      expect(await link.getAttribute("rel")).toMatch(/noopener/);
+    }
+    await context.close();
+  });
+});
+
+test.describe("pie de página y documentos legales", () => {
+  for (const path of ["/", "/home", "/music", "/archives", "/about", "/contact", "/privacy"]) {
+    test(`redes, contacto y enlaces legales · ${path}`, async ({ browser }) => {
+      const { context, page } = await open(browser);
+      await page.goto(path);
+      const footer = page.locator("footer.nv-footer");
+      await expect(footer.getByRole("img", { name: "aTwoSaint" })).toBeVisible();
+      for (const href of Object.values(OFFICIAL)) {
+        const link = footer.locator(`a[href="${href}"]`);
+        await expect(link).toHaveCount(1);
+        await expect(link).toHaveAttribute("target", "_blank");
+        expect(await link.getAttribute("rel")).toMatch(/noopener/);
+      }
+      await expect(footer.getByRole("link", { name: "Contact" })).toHaveAttribute("href", "/contact");
+      for (const [name, href] of [["Privacy Policy", "/privacy"], ["Terms of Use", "/terms"], ["Cookie Policy", "/cookies"]]) {
+        await expect(footer.getByRole("link", { name })).toHaveAttribute("href", href);
+      }
+      await expect(footer).toContainText(`© ${new Date().getFullYear()}`);
+      await context.close();
+    });
+  }
+
+  test("los iconos del pie son botones táctiles de al menos 44 px", async ({ browser }) => {
+    const { context, page } = await open(browser, VIEWPORTS.movil);
+    await page.goto("/about");
+    for (const a of await page.locator("footer.nv-footer__social a, .nv-footer__social a").all()) {
+      const b = (await a.boundingBox())!;
+      expect(b.width).toBeGreaterThanOrEqual(44);
+      expect(b.height).toBeGreaterThanOrEqual(44);
+    }
+    await context.close();
+  });
+
+  test("los documentos legales dicen lo que la web hace de verdad", async ({ browser }) => {
+    const { context, page } = await open(browser);
+    await page.goto("/cookies");
+    await expect(page.locator("main")).toContainText("no analytics, advertising or tracking cookies");
+    await expect(page.locator("main")).toContainText("__Host-atw_session");
+    // Sin cookies no esenciales no hay banner de consentimiento.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.goto("/privacy");
+    await expect(page.locator("main")).toContainText("Traktrain");
+    await expect(page.locator("main")).toContainText("atwosaint2@gmail.com");
+    await page.goto("/terms");
+    await expect(page.locator("main")).toContainText("preview for listening only");
+    // Visitar la web no crea ninguna cookie.
+    await page.goto("/music");
+    expect(await context.cookies()).toEqual([]);
     await context.close();
   });
 });
 
 test.describe("rutas y cabeceras", () => {
-  test("una ficha inexistente devuelve 404", async ({ request }) => {
-    const res = await request.get("/referencias/no-existe");
+  test("una ficha o un beat inexistentes devuelven 404", async ({ request }) => {
+    const res = await request.get("/archives/no-existe");
     expect(res.status()).toBe(404);
+    expect((await request.get("/music/no-existe")).status()).toBe(404);
   });
 
   test("cabeceras de seguridad presentes", async ({ request }) => {
@@ -711,6 +517,30 @@ test.describe("rutas y cabeceras", () => {
   test("robots.txt oculta /admin", async ({ request }) => {
     const body = await (await request.get("/robots.txt")).text();
     expect(body).toContain("Disallow: /admin");
+  });
+
+  test("las direcciones antiguas de Referencias redirigen a Archives", async ({ request }) => {
+    const a = await request.get("/referencias", { maxRedirects: 0 });
+    expect(a.status()).toBe(308);
+    expect(a.headers().location).toContain("/archives");
+    const b = await request.get("/referencias/estudio-de-forma-001", { maxRedirects: 0 });
+    expect(b.status()).toBe(308);
+    expect(b.headers().location).toContain("/archives/estudio-de-forma-001");
+  });
+
+  test("el HTML público no contiene nombres de secretos ni rutas de administración visibles", async ({ request }) => {
+    for (const path of ["/", "/music", "/archives", "/about", "/contact"]) {
+      const html = await (await request.get(path)).text();
+      for (const word of ["DATABASE_URL", "BLOB_READ_WRITE_TOKEN", "AUTH_SECRET", "ADMIN_PASSWORD"]) {
+        expect(html, `${path} contiene ${word}`).not.toContain(word);
+      }
+    }
+  });
+
+  test("las rutas de la API de administración solo aceptan lo previsto", async ({ request }) => {
+    expect((await request.get("/api/admin/music/upload")).status()).toBe(405);
+    const bad = await request.post("/api/admin/music/upload", { data: "no-json", headers: { "content-type": "application/json" } });
+    expect(bad.status()).toBe(400);
   });
 });
 

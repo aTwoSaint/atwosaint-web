@@ -36,7 +36,7 @@ docs/               Decisiones y notas
 
 ## Music (página de inicio)
 
-`/` muestra la música como un display 3D flotante (CSS puro, sin Three.js) sobre el mismo gris del menú Wii. Al abrir un proyecto: reproductor (mp3/wav), lista de canciones y botón **Comprar** (solo enlaces de BeatStars).
+`/` muestra la música como un display 3D flotante (CSS puro, sin Three.js) sobre el mismo gris del menú Wii. Al abrir un proyecto: reproductor (mp3/wav), lista de canciones y botón **Comprar** (solo enlaces de Traktrain).
 
 **Gestión (sin tocar código):** `/admin/music` → crear/editar/ocultar/eliminar álbumes, subir portada y añadir o borrar canciones mp3/wav (hasta 80 MB, subida directa a Vercel Blob; las URLs del audio son públicas, usa versiones de previsualización si vendes beats). Mientras no haya nada publicado se ven 6 proyectos de **demostración** marcados como tal (`src/content/music.ts`).
 

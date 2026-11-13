@@ -87,8 +87,8 @@ export function AlbumForm({ album }: { album?: AdminAlbum }) {
       </label>
 
       <label className="block space-y-1">
-        <span className={label}>Enlace «Comprar» de BeatStars (opcional)</span>
-        <input name="buyUrl" type="url" placeholder="https://www.beatstars.com/…" defaultValue={val("buyUrl", album?.buyUrl ?? "")} className={field} />
+        <span className={label}>Enlace de Traktrain del proyecto (opcional; sirve de reserva para sus beats)</span>
+        <input name="buyUrl" type="url" placeholder="https://traktrain.com/atwosaint/…" defaultValue={val("buyUrl", album?.buyUrl ?? "")} className={field} />
         <FieldError message={e.buyUrl} />
       </label>
 

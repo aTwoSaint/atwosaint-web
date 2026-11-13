@@ -15,16 +15,12 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="wii-stage flex flex-col items-center justify-center gap-5 px-6 text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--w-blue-ink)]">
-        Error
-      </p>
-      <h1 className="text-2xl font-semibold">Algo no ha salido bien.</h1>
-      <p className="max-w-md text-[var(--w-muted)]">
-        No hemos podido cargar las referencias. Inténtalo de nuevo en unos segundos.
-      </p>
-      <button type="button" onClick={() => retry()} className="wii-pill">
-        Reintentar
+    <main className="nv-root flex min-h-svh flex-col items-center justify-center gap-5 px-6 text-center">
+      <p className="nv-eyebrow">Error</p>
+      <h1 className="text-2xl font-semibold">Something went wrong.</h1>
+      <p className="max-w-md text-[var(--n-grey)]">We couldn’t load this page. Try again in a few seconds.</p>
+      <button type="button" onClick={() => retry()} className="nv-buy">
+        Try again
       </button>
     </main>
   );

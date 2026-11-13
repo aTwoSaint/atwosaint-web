@@ -30,6 +30,10 @@ export type AdminTrack = {
   sizeBytes: number;
   durationSeconds: number | null;
   buyUrl: string | null;
+  bpm: number | null;
+  musicalKey: string | null;
+  description: string | null;
+  releasedOn: string | null;
 };
 
 type BatchStatements = Parameters<ReturnType<typeof getDb>["batch"]>[0];
@@ -82,6 +86,10 @@ export async function getAdminAlbum(
       sizeBytes: t.sizeBytes,
       durationSeconds: t.durationSeconds,
       buyUrl: t.buyUrl,
+      bpm: t.bpm,
+      musicalKey: t.musicalKey,
+      description: t.description,
+      releasedOn: t.releasedOn,
     })),
   };
 }
@@ -229,13 +237,39 @@ export async function addTrack(input: {
   sizeBytes: number;
   durationSeconds: number | null;
   buyUrl: string | null;
+  bpm: number | null;
+  musicalKey: string | null;
+  description: string | null;
+  releasedOn: string | null;
 }): Promise<void> {
   const db = getDb();
   const [{ top }] = await db
     .select({ top: max(tracks.position) })
     .from(tracks)
     .where(eq(tracks.albumId, input.albumId));
-  await db.insert(tracks).values({ ...input, position: (top ?? 0) + 1 });
+  const taken = await db.select({ slug: tracks.slug }).from(tracks);
+  const slug = uniqueSlug(
+    slugify(input.title),
+    taken.map((t) => t.slug).filter((x): x is string => Boolean(x)),
+  );
+  await db.insert(tracks).values({ ...input, slug, position: (top ?? 0) + 1 });
+}
+
+/** Edita la ficha de un beat (no toca el archivo de audio ni la dirección pública). */
+export async function updateTrack(
+  id: string,
+  input: {
+    title: string;
+    buyUrl: string | null;
+    bpm: number | null;
+    musicalKey: string | null;
+    description: string | null;
+    releasedOn: string | null;
+  },
+): Promise<{ albumId: string } | null> {
+  const db = getDb();
+  const [row] = await db.update(tracks).set(input).where(eq(tracks.id, id)).returning({ albumId: tracks.albumId });
+  return row ?? null;
 }
 
 /** Borra la canción; devuelve la URL del audio para limpiar el almacén. */

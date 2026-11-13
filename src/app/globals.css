@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
-@import "../styles/wii.css";
-@import "../styles/music.css";
+@import "../styles/night.css";
 
 html {
   background: var(--paper);
