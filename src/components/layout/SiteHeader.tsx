@@ -21,7 +21,7 @@ export function SiteHeader() {
             Music
           </Link>
           <Link
-            href="/referencias"
+            href="/archives"
             className="font-mono text-xs uppercase tracking-widest underline-offset-8 hover:underline"
           >
             References

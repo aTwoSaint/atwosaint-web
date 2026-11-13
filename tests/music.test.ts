@@ -1,68 +1,48 @@
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
-import { albums } from "@/content/music";
-import { formatDuration, isBeatStarsUrl, isBlobUrl } from "@/features/music/links";
+import { beats } from "@/content/music";
+import { formatDuration, isBlobUrl, isTraktrainUrl, resolveBuyUrl, TRAKTRAIN_PROFILE_URL } from "@/features/music/links";
 import { clientIp, isLocked, MAX_FAILURES, throttleKey } from "@/lib/auth/throttle-policy";
-import { buildSlots, MIN_SLOTS } from "@/features/music/slots";
-import { albumSchema, trackSchema } from "@/features/music/schema";
-import {
-  angleForIndex,
-  frontIndex,
-  frontness,
-  ringRadius,
-  shortestDelta,
-  wrap180,
-} from "@/features/music/ring";
+import { albumSchema, trackSchema, trackUpdateSchema } from "@/features/music/schema";
 
 describe("catálogo de demostración", () => {
   it("slugs e ids únicos y portadas existentes", () => {
-    expect(new Set(albums.map((a) => a.slug)).size).toBe(albums.length);
-    expect(new Set(albums.map((a) => a.id)).size).toBe(albums.length);
-    for (const a of albums) {
-      if (!a.cover) continue;
-      expect(existsSync(`public${a.cover.src}`), a.cover.src).toBe(true);
-      expect(a.cover.alt.length).toBeGreaterThan(5);
+    expect(new Set(beats.map((b) => b.slug)).size).toBe(beats.length);
+    expect(new Set(beats.map((b) => b.id)).size).toBe(beats.length);
+    for (const b of beats) {
+      expect(b.cover).toBeDefined();
+      expect(existsSync(`public${b.cover!.src}`)).toBe(true);
     }
   });
-  it("todo contenido de demostración está marcado", () => {
-    for (const a of albums) {
-      expect(a.demo).toBe(true);
-      expect(a.artist).toContain("demo");
+  it("todo contenido de demostración está marcado y su audio existe", () => {
+    for (const b of beats) {
+      expect(b.demo).toBe(true);
+      expect(existsSync(`public${b.audioUrl}`)).toBe(true);
     }
   });
-  it("los enlaces de compra, si los hay, son de BeatStars", () => {
-    for (const a of albums) {
-      if (a.buyUrl) expect(isBeatStarsUrl(a.buyUrl)).toBe(true);
-      for (const t of a.tracks) if (t.buyUrl) expect(isBeatStarsUrl(t.buyUrl)).toBe(true);
-    }
-  });
-});
-
-describe("huecos del carrusel", () => {
-  it("sin proyectos no se añaden huecos", () => {
-    expect(buildSlots([])).toEqual([]);
-  });
-  it("con pocos proyectos se completa con huecos Coming Soon tras los reales", () => {
-    const slots = buildSlots(albums.slice(0, 1));
-    expect(slots).toHaveLength(MIN_SLOTS);
-    expect(slots[0].kind).toBe("album");
-    expect(slots.slice(1).every((x) => x.kind === "soon")).toBe(true);
-    expect(new Set(slots.map((x) => (x.kind === "soon" ? x.id : x.album.id))).size).toBe(MIN_SLOTS);
-  });
-  it("con suficientes proyectos no se añaden huecos", () => {
-    expect(buildSlots(albums).every((x) => x.kind === "album")).toBe(true);
+  it("los enlaces de compra, si los hay, son de Traktrain", () => {
+    for (const b of beats) if (b.buyUrl) expect(isTraktrainUrl(b.buyUrl)).toBe(true);
   });
 });
 
 describe("enlaces y duraciones", () => {
-  it("solo acepta https de BeatStars", () => {
-    expect(isBeatStarsUrl("https://www.beatstars.com/atwosaint")).toBe(true);
-    expect(isBeatStarsUrl("https://bsta.rs/abc")).toBe(true);
-    expect(isBeatStarsUrl("http://beatstars.com/x")).toBe(false);
-    expect(isBeatStarsUrl("https://beatstars.com.evil.com/x")).toBe(false);
-    expect(isBeatStarsUrl("https://user:pw@beatstars.com/x")).toBe(false);
-    expect(isBeatStarsUrl("javascript:alert(1)")).toBe(false);
-    expect(isBeatStarsUrl("no es url")).toBe(false);
+  it("solo acepta https de Traktrain", () => {
+    expect(isTraktrainUrl("https://traktrain.com/atwosaint")).toBe(true);
+    expect(isTraktrainUrl("https://www.traktrain.com/atwosaint/beat")).toBe(true);
+    expect(isTraktrainUrl("http://traktrain.com/x")).toBe(false);
+    expect(isTraktrainUrl("https://traktrain.com.evil.com/x")).toBe(false);
+    expect(isTraktrainUrl("https://user:pw@traktrain.com/x")).toBe(false);
+    expect(isTraktrainUrl("https://www.beatstars.com/x")).toBe(false);
+    expect(isTraktrainUrl("javascript:alert(1)")).toBe(false);
+    expect(isTraktrainUrl("no es url")).toBe(false);
+  });
+  it("el botón de compra usa el enlace del beat, luego el del proyecto y por último el perfil", () => {
+    expect(resolveBuyUrl("https://traktrain.com/atwosaint/a", "https://traktrain.com/atwosaint/b")).toBe("https://traktrain.com/atwosaint/a");
+    expect(resolveBuyUrl(undefined, "https://traktrain.com/atwosaint/b")).toBe("https://traktrain.com/atwosaint/b");
+    expect(resolveBuyUrl(null, undefined)).toBe(TRAKTRAIN_PROFILE_URL);
+    // Un enlace antiguo o ajeno nunca llega al botón.
+    expect(resolveBuyUrl("https://www.beatstars.com/x")).toBe(TRAKTRAIN_PROFILE_URL);
+    expect(TRAKTRAIN_PROFILE_URL).toBe("https://traktrain.com/atwosaint");
   });
   it("solo acepta audio del Blob propio", () => {
     expect(isBlobUrl("https://abc.public.blob.vercel-storage.com/musica/audio/a.mp3")).toBe(true);
@@ -84,43 +64,36 @@ describe("validación del admin de música", () => {
     expect(r.buyUrl).toBeUndefined();
     expect(r.year).toBeUndefined();
   });
-  it("rechaza enlaces de compra que no son BeatStars", () => {
+  it("rechaza enlaces de compra que no son Traktrain", () => {
     expect(albumSchema.safeParse({ ...base, buyUrl: "https://example.com/x" }).success).toBe(false);
-    expect(albumSchema.safeParse({ ...base, buyUrl: "https://www.beatstars.com/x" }).success).toBe(true);
+    expect(albumSchema.safeParse({ ...base, buyUrl: "https://www.beatstars.com/x" }).success).toBe(false);
+    expect(albumSchema.safeParse({ ...base, buyUrl: "https://traktrain.com/atwosaint/x" }).success).toBe(true);
   });
   it("rechaza años absurdos y títulos vacíos", () => {
     expect(albumSchema.safeParse({ ...base, year: "1500" }).success).toBe(false);
     expect(albumSchema.safeParse({ ...base, title: " " }).success).toBe(false);
   });
-  it("valida pistas", () => {
-    const t = { albumId: "5b0f8c1e-6a43-4c7b-9a3e-2d1f4b6c8e90", title: "Pista", url: "https://x", pathname: "musica/audio/a.mp3" };
-    expect(trackSchema.safeParse(t).success).toBe(true);
-    expect(trackSchema.safeParse({ ...t, albumId: "nope" }).success).toBe(false);
-  });
-});
-
-describe("geometría del anillo", () => {
-  it("normaliza ángulos", () => {
-    expect(wrap180(190)).toBe(-170);
-    expect(wrap180(-190)).toBe(170);
-    expect(wrap180(540)).toBe(180);
-    expect(shortestDelta(350, 10)).toBe(20);
-    expect(shortestDelta(10, 350)).toBe(-20);
-  });
-  it("la portada elegida queda de frente", () => {
-    for (const n of [1, 3, 6, 12]) {
-      for (let i = 0; i < n; i++) {
-        expect(frontness(i, n, angleForIndex(i, n))).toBeCloseTo(1, 6);
-        expect(frontIndex(n, angleForIndex(i, n))).toBe(i);
-      }
+  const track = { albumId: "5b0f8c1e-6a43-4c7b-9a3e-2d1f4b6c8e90", title: "Pista", url: "https://x", pathname: "musica/audio/a.mp3" };
+  it("valida beats y normaliza los campos opcionales vacíos", () => {
+    const ok = trackSchema.safeParse({ ...track, bpm: "", musicalKey: "", description: "", releasedOn: "", buyUrl: "" });
+    expect(ok.success).toBe(true);
+    if (ok.success) {
+      expect(ok.data.bpm).toBeUndefined();
+      expect(ok.data.releasedOn).toBeUndefined();
     }
+    expect(trackSchema.safeParse({ ...track, albumId: "nope" }).success).toBe(false);
   });
-  it("la opuesta queda detrás", () => {
-    expect(frontness(3, 6, angleForIndex(0, 6))).toBeCloseTo(0, 6);
+  it("valida BPM, fecha y enlace del beat", () => {
+    expect(trackSchema.safeParse({ ...track, bpm: "140", releasedOn: "2026-11-13", musicalKey: "F# minor" }).success).toBe(true);
+    expect(trackSchema.safeParse({ ...track, bpm: "5" }).success).toBe(false);
+    expect(trackSchema.safeParse({ ...track, bpm: "140.5" }).success).toBe(false);
+    expect(trackSchema.safeParse({ ...track, releasedOn: "13/11/2026" }).success).toBe(false);
+    expect(trackSchema.safeParse({ ...track, releasedOn: "2026-13-45" }).success).toBe(false);
+    expect(trackSchema.safeParse({ ...track, buyUrl: "https://evil.example/x" }).success).toBe(false);
   });
-  it("el radio crece con el número de portadas y nunca es menor que el mínimo", () => {
-    expect(ringRadius(3, 200)).toBeGreaterThanOrEqual(290);
-    expect(ringRadius(40, 200)).toBeGreaterThan(ringRadius(10, 200));
+  it("la edición exige un id válido", () => {
+    expect(trackUpdateSchema.safeParse({ id: track.albumId, title: "Nuevo" }).success).toBe(true);
+    expect(trackUpdateSchema.safeParse({ id: "x'; DROP TABLE tracks;--", title: "Nuevo" }).success).toBe(false);
   });
 });
 

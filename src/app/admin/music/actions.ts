@@ -12,6 +12,7 @@ import {
   deleteAlbum,
   deleteTrack,
   setAlbumStatus,
+  updateTrack,
   SlugConflictError,
   updateAlbum,
   type NewCover,
@@ -25,6 +26,7 @@ import {
   AUDIO_TYPES,
   MAX_AUDIO_BYTES,
   trackSchema,
+  trackUpdateSchema,
 } from "@/features/music/schema";
 import { idSchema, type ActionState } from "@/features/references/schema";
 
@@ -194,6 +196,10 @@ export async function addTrackAction(input: unknown): Promise<TrackResult> {
       sizeBytes: info.size,
       durationSeconds: data.durationSeconds ?? null,
       buyUrl: data.buyUrl ?? null,
+      bpm: data.bpm ?? null,
+      musicalKey: data.musicalKey ?? null,
+      description: data.description ?? null,
+      releasedOn: data.releasedOn ?? null,
     });
   } catch (e) {
     console.error("Error al guardar la canción", e);
@@ -211,4 +217,31 @@ export async function deleteTrackAction(formData: FormData): Promise<void> {
   const removed = await deleteTrack(id.data);
   if (removed) await deleteImages([removed.url]);
   refreshPublicPages();
+}
+
+export async function updateTrackAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const names = ["id", "title", "buyUrl", "bpm", "musicalKey", "description", "releasedOn"];
+  const values = Object.fromEntries(
+    names.map((k) => [k, typeof formData.get(k) === "string" ? (formData.get(k) as string) : ""]),
+  );
+  const parsed = trackUpdateSchema.safeParse(values);
+  if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error), values };
+  const { id, ...rest } = parsed.data;
+  try {
+    const row = await updateTrack(id, {
+      title: rest.title,
+      buyUrl: rest.buyUrl ?? null,
+      bpm: rest.bpm ?? null,
+      musicalKey: rest.musicalKey ?? null,
+      description: rest.description ?? null,
+      releasedOn: rest.releasedOn ?? null,
+    });
+    if (!row) return { error: "El beat ya no existe.", values };
+  } catch (e) {
+    console.error("Error al actualizar el beat", e);
+    return { error: "No se ha podido guardar. ¿Has aplicado la migración 0004 en la base de datos?", values };
+  }
+  refreshPublicPages();
+  return { ok: true, values };
 }

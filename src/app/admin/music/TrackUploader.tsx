@@ -40,12 +40,12 @@ export function TrackUploader({ albumId }: { albumId: string }) {
     const form = new FormData(event.currentTarget);
     const file = form.get("audio");
     const title = String(form.get("title") ?? "").trim();
-    const buyUrl = String(form.get("buyUrl") ?? "").trim();
+    const text = (k: string) => String(form.get(k) ?? "").trim();
     if (!(file instanceof File) || file.size === 0) return setMessage({ kind: "error", text: "Elige un archivo mp3 o wav." });
     const ext = file.name.toLowerCase().match(/\.(mp3|wav)$/)?.[1];
     if (!ext) return setMessage({ kind: "error", text: "Solo se admiten archivos .mp3 o .wav." });
     if (file.size > MAX_AUDIO_BYTES) return setMessage({ kind: "error", text: "El archivo pesa más de 80 MB." });
-    if (!title) return setMessage({ kind: "error", text: "Escribe el nombre de la canción." });
+    if (!title) return setMessage({ kind: "error", text: "Escribe el nombre del beat." });
 
     setBusy(true);
     setProgress(0);
@@ -62,7 +62,11 @@ export function TrackUploader({ albumId }: { albumId: string }) {
       const result = await addTrackAction({
         albumId,
         title,
-        buyUrl,
+        buyUrl: text("buyUrl"),
+        bpm: text("bpm"),
+        musicalKey: text("musicalKey"),
+        description: text("description"),
+        releasedOn: text("releasedOn"),
         durationSeconds,
         url: blob.url,
         pathname: blob.pathname,
@@ -71,7 +75,7 @@ export function TrackUploader({ albumId }: { albumId: string }) {
         setMessage({ kind: "error", text: result.error });
       } else {
         formRef.current?.reset();
-        setMessage({ kind: "ok", text: "Canción añadida." });
+        setMessage({ kind: "ok", text: "Beat añadido." });
         router.refresh();
       }
     } catch (error) {
@@ -89,16 +93,34 @@ export function TrackUploader({ albumId }: { albumId: string }) {
         <input name="audio" type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" required className={field} />
       </label>
       <label className="block space-y-1">
-        <span className={label}>Nombre de la canción</span>
+        <span className={label}>Nombre del beat</span>
         <input name="title" required maxLength={100} className={field} />
       </label>
       <label className="block space-y-1">
-        <span className={label}>Enlace «Comprar» de BeatStars para esta canción (opcional)</span>
-        <input name="buyUrl" type="url" placeholder="https://www.beatstars.com/…" className={field} />
+        <span className={label}>Enlace de Traktrain para este beat (opcional)</span>
+        <input name="buyUrl" type="url" placeholder="https://traktrain.com/atwosaint/…" className={field} />
+      </label>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <label className="block space-y-1">
+          <span className={label}>BPM (opcional)</span>
+          <input name="bpm" type="number" inputMode="numeric" min={30} max={300} className={field} />
+        </label>
+        <label className="block space-y-1">
+          <span className={label}>Tonalidad (opcional)</span>
+          <input name="musicalKey" maxLength={20} placeholder="F# minor" className={field} />
+        </label>
+        <label className="block space-y-1">
+          <span className={label}>Lanzamiento (opcional)</span>
+          <input name="releasedOn" type="date" className={field} />
+        </label>
+      </div>
+      <label className="block space-y-1">
+        <span className={label}>Descripción (opcional)</span>
+        <textarea name="description" rows={2} maxLength={600} className={field} />
       </label>
       <p className="text-sm text-muted">
         Cualquiera con el enlace puede descargar el archivo. Para vender, sube una versión de previsualización (mp3) y
-        deja el wav limpio para BeatStars.
+        deja el wav limpio para venderlo por Traktrain.
       </p>
       {message ? (
         <p role={message.kind === "error" ? "alert" : "status"} className={message.kind === "error" ? "text-sm text-accent-ink" : "text-sm"}>
@@ -110,7 +132,7 @@ export function TrackUploader({ albumId }: { albumId: string }) {
         disabled={busy}
         className="border border-ink px-4 py-2 font-mono text-xs uppercase tracking-widest hover:bg-ink hover:text-paper disabled:opacity-50"
       >
-        {busy ? `Subiendo… ${progress}%` : "Añadir canción"}
+        {busy ? `Subiendo… ${progress}%` : "Añadir beat"}
       </button>
     </form>
   );

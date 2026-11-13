@@ -7,6 +7,7 @@ import { idSchema } from "@/features/references/schema";
 import { ConfirmButton } from "../../ConfirmButton";
 import { AlbumForm } from "../AlbumForm";
 import { deleteAlbumAction, deleteTrackAction } from "../actions";
+import { TrackEditForm } from "../TrackEditForm";
 import { TrackUploader } from "../TrackUploader";
 
 const small = "font-mono text-xs uppercase tracking-widest underline-offset-8 hover:underline";
@@ -52,10 +53,10 @@ export default async function EditAlbumPage({ params }: PageProps<"/admin/music/
         <div className="space-y-16">
           <section aria-labelledby="canciones">
             <h2 id="canciones" className="mb-6 text-lg font-medium">
-              Canciones ({tracks.length})
+              Beats ({tracks.length})
             </h2>
             {tracks.length === 0 ? (
-              <p className="text-sm text-muted">Todavía no hay canciones.</p>
+              <p className="text-sm text-muted">Todavía no hay beats.</p>
             ) : (
               <ul className="divide-y divide-line border-y border-line">
                 {tracks.map((t) => (
@@ -69,10 +70,11 @@ export default async function EditAlbumPage({ params }: PageProps<"/admin/music/
                         {t.buyUrl ? " · con enlace de compra" : ""}
                       </p>
                       <audio controls preload="none" src={t.audioUrl} className="mt-2 h-8 w-full max-w-xs" />
+                      <TrackEditForm track={t} />
                     </div>
                     <form action={deleteTrackAction}>
                       <input type="hidden" name="id" value={t.id} />
-                      <ConfirmButton message={`¿Borrar «${t.title}» y su archivo de audio? No se puede deshacer.`} className={`${small} text-accent-ink`}>
+                      <ConfirmButton message={`¿Borrar el beat «${t.title}» y su archivo de audio? No se puede deshacer.`} className={`${small} text-accent-ink`}>
                         Borrar
                       </ConfirmButton>
                     </form>
@@ -84,7 +86,7 @@ export default async function EditAlbumPage({ params }: PageProps<"/admin/music/
 
           <section aria-labelledby="anadir">
             <h2 id="anadir" className="mb-6 text-lg font-medium">
-              Añadir canción
+              Añadir beat
             </h2>
             <TrackUploader albumId={album.id} />
           </section>

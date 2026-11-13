@@ -1,12 +1,13 @@
 /**
- * Texto de About. PROVISIONAL: lo escrito aquí resume lo que el propietario ha dicho de la
- * marca; edítalo a tu gusto. Los datos de contacto no se escriben aquí: se leen de las
- * variables CONTACT_EMAIL y CONTACT_INSTAGRAM_URL.
+ * Texto de About (en inglés). Parte del texto facilitado por el titular; no contiene datos personales,
+ * trayectoria ni logros que no se hayan proporcionado.
  */
 export const about = {
   title: "About",
+  lead: "aTwoSaint is an independent creative project based in Spain, focused on hip-hop production, sound and visual identity.",
   paragraphs: [
-    "ATWOSAINT es una marca personal de creación de contenido, arte y música.",
-    "En Music vive el trabajo sonoro; en References, el archivo visual que define su estilo: arte, ropa y todo lo que sirve de inspiración.",
+    "Built around a passion for music, design and creative expression, aTwoSaint explores different sounds and visual directions while developing its own identity. Beats come first; fashion, photography and visual references shape everything around them.",
+    "Every instrumental is available to preview on this site and to license through Traktrain.",
   ],
-};
+  signature: "Independent by nature. Creative without boundaries.",
+} as const;

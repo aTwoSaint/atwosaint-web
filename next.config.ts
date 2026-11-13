@@ -56,6 +56,13 @@ const nextConfig: NextConfig = {
     // Vercel admite ~4,5 MB por petición; dejamos margen para el formulario.
     serverActions: { bodySizeLimit: "4400kb" },
   },
+  async redirects() {
+    // Las direcciones antiguas (Referencias) siguen funcionando.
+    return [
+      { source: "/referencias", destination: "/archives", permanent: true },
+      { source: "/referencias/:slug", destination: "/archives/:slug", permanent: true },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

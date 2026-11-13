@@ -1,12 +1,11 @@
 import "server-only";
 import { asc, eq, getTableColumns, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { albums as sampleAlbums } from "@/content/music";
+import { beats as sampleBeats } from "@/content/music";
 import { isSampleDataMode } from "@/lib/config/env";
 import { getDb } from "@/lib/db";
 import { albums, images, tracks } from "@/lib/db/schema";
-import { formatDuration } from "@/features/music/links";
-import type { Album } from "@/features/music/types";
+import type { Beat } from "@/features/music/types";
 
 /** ¿Es el error «la tabla no existe» (migración de Music aún sin aplicar)? */
 export function isMissingTable(error: unknown): boolean {
@@ -28,17 +27,19 @@ export function isMissingColumn(error: unknown): boolean {
   return false;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * Única puerta de acceso a los datos públicos de Music.
+ * Única puerta de acceso a los beats públicos (cada canción de un proyecto publicado).
  * Con USE_SAMPLE_DATA=1 (desarrollo y CI) sirve contenido de demostración.
- * Si la migración 0001 aún no se ha aplicado en la base de datos, devuelve una lista vacía
- * (en vez de romper la web) y lo deja en el registro.
+ * Si faltan migraciones (0001 tablas, 0002 hover, 0004 ficha del beat), la web sigue funcionando
+ * con lo que haya y lo deja en el registro.
  */
-export async function getAlbums(): Promise<Album[]> {
+export async function getBeats(): Promise<Beat[]> {
   if (isSampleDataMode()) {
-    // SAMPLE_MUSIC_COUNT permite probar el carrusel con pocos proyectos (p. ej. 1).
+    // SAMPLE_MUSIC_COUNT permite probar el carrusel con pocos beats (p. ej. 1).
     const n = Number(process.env.SAMPLE_MUSIC_COUNT);
-    return Number.isInteger(n) && n >= 0 ? sampleAlbums.slice(0, n) : sampleAlbums;
+    return Number.isInteger(n) && n >= 0 ? sampleBeats.slice(0, n) : sampleBeats;
   }
 
   try {
@@ -70,37 +71,53 @@ export async function getAlbums(): Promise<Album[]> {
     }
     if (rows.length === 0) return [];
 
-    const trackRows = await db
-      .select()
-      .from(tracks)
-      .where(inArray(tracks.albumId, rows.map((r) => r.album.id)))
-      .orderBy(asc(tracks.position), asc(tracks.createdAt));
+    const ids = rows.map((r) => r.album.id);
+    type TrackRow = typeof tracks.$inferSelect;
+    let trackRows: TrackRow[];
+    try {
+      trackRows = await db
+        .select()
+        .from(tracks)
+        .where(inArray(tracks.albumId, ids))
+        .orderBy(asc(tracks.position), asc(tracks.createdAt));
+    } catch (error) {
+      if (!isMissingColumn(error)) throw error;
+      // La migración 0004 (ficha del beat) aún no está aplicada: se sirven los beats sin esos campos.
+      console.warn("Music: faltan columnas de la ficha del beat (aplica drizzle/0004_beat_details.sql en Neon).");
+      const { slug: _s, bpm: _b, musicalKey: _k, description: _d, releasedOn: _r, ...legacy } = getTableColumns(tracks);
+      void [_s, _b, _k, _d, _r];
+      const old = await db
+        .select(legacy)
+        .from(tracks)
+        .where(inArray(tracks.albumId, ids))
+        .orderBy(asc(tracks.position), asc(tracks.createdAt));
+      trackRows = old.map((t) => ({ ...t, slug: null, bpm: null, musicalKey: null, description: null, releasedOn: null }));
+    }
 
-    return rows.map(({ album: a, cover, hover }) => ({
-      id: a.id,
-      slug: a.slug,
-      title: a.title,
-      artist: a.artist,
-      kind: a.kind,
-      year: a.year ?? undefined,
-      description: a.description ?? undefined,
-      buyUrl: a.buyUrl ?? undefined,
-      cover: cover
-        ? { src: cover.url, alt: cover.alt, width: cover.width, height: cover.height }
-        : undefined,
-      hover: hover
-        ? { src: hover.url, alt: hover.alt, width: hover.width, height: hover.height }
-        : undefined,
-      tracks: trackRows
-        .filter((t) => t.albumId === a.id)
-        .map((t) => ({
+    const out: Beat[] = [];
+    for (const { album: a, cover, hover } of rows) {
+      const image = (i: typeof cover) =>
+        i ? { src: i.url, alt: i.alt, width: i.width, height: i.height } : undefined;
+      for (const t of trackRows.filter((x) => x.albumId === a.id)) {
+        out.push({
           id: t.id,
+          slug: t.slug ?? t.id,
           title: t.title,
-          duration: formatDuration(t.durationSeconds),
+          artist: a.artist,
+          cover: image(cover),
+          background: image(hover),
           audioUrl: t.audioUrl,
-          buyUrl: t.buyUrl ?? undefined,
-        })),
-    }));
+          durationSeconds: t.durationSeconds ?? undefined,
+          bpm: t.bpm ?? undefined,
+          musicalKey: t.musicalKey ?? undefined,
+          description: t.description ?? a.description ?? undefined,
+          releasedOn: t.releasedOn ?? undefined,
+          buyUrl: t.buyUrl ?? a.buyUrl ?? undefined,
+          collection: a.title,
+        });
+      }
+    }
+    return out;
   } catch (error) {
     if (isMissingTable(error)) {
       console.warn("Music: faltan las tablas (aplica drizzle/0001_*.sql en Neon). Se muestra vacío.");
@@ -108,4 +125,9 @@ export async function getAlbums(): Promise<Album[]> {
     }
     throw error;
   }
+}
+
+export async function getBeatBySlug(slug: string): Promise<Beat | null> {
+  const all = await getBeats();
+  return all.find((b) => b.slug === slug) ?? (UUID.test(slug) ? all.find((b) => b.id === slug) ?? null : null);
 }

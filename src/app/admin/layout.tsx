@@ -10,10 +10,10 @@ export const metadata: Metadata = {
 /** La zona de administración conserva su propia interfaz funcional (cabecera y pie sencillos). */
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
-    <>
+    <div lang="es" className="flex min-h-full flex-1 flex-col">
       <SiteHeader />
       <div className="flex flex-1 flex-col">{children}</div>
       <SiteFooter />
-    </>
+    </div>
   );
 }
