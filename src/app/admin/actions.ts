@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { checkAdminCredentials } from "@/lib/auth/credentials";
 import { endSession, requireAdmin, startSession } from "@/lib/auth/session";
+import { clearLoginFailures, isLoginLocked, recordLoginFailure } from "@/lib/auth/throttle";
+import { isSampleDataMode } from "@/lib/config/env";
 import {
   createReferenceSchema,
   idSchema,
@@ -49,15 +51,27 @@ export async function loginAction(
   };
   if (!parsed.success) return generic;
 
+  // Freno a la fuerza bruta: demasiados fallos recientes desde esta conexión ⇒ ni se comprueba la contraseña.
+  const throttled = !isSampleDataMode();
+  if (throttled && (await isLoginLocked())) {
+    await sleep(500);
+    return {
+      error: "Demasiados intentos fallidos. Espera 15 minutos e inténtalo de nuevo.",
+      values: generic.values,
+    };
+  }
+
   const ok = await checkAdminCredentials(
     parsed.data.email,
     parsed.data.password,
   );
   if (!ok) {
+    if (throttled) await recordLoginFailure();
     await sleep(500);
     return generic;
   }
 
+  if (throttled) await clearLoginFailures();
   await startSession();
   redirect("/admin");
 }

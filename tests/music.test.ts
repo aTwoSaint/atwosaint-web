@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { albums } from "@/content/music";
 import { formatDuration, isBeatStarsUrl, isBlobUrl } from "@/features/music/links";
+import { clientIp, isLocked, MAX_FAILURES, throttleKey } from "@/lib/auth/throttle-policy";
 import { buildSlots, MIN_SLOTS } from "@/features/music/slots";
 import { albumSchema, trackSchema } from "@/features/music/schema";
 import {
@@ -120,5 +121,26 @@ describe("geometría del anillo", () => {
   it("el radio crece con el número de portadas y nunca es menor que el mínimo", () => {
     expect(ringRadius(3, 200)).toBeGreaterThanOrEqual(290);
     expect(ringRadius(40, 200)).toBeGreaterThan(ringRadius(10, 200));
+  });
+});
+
+describe("política de bloqueo del acceso", () => {
+  it("bloquea a partir de 5 fallos, no antes", () => {
+    expect(isLocked(MAX_FAILURES - 1)).toBe(false);
+    expect(isLocked(MAX_FAILURES)).toBe(true);
+  });
+  it("toma la IP de x-real-ip o, si no, del primer valor de x-forwarded-for", () => {
+    const h = (o: Record<string, string>) => ({ get: (n: string) => o[n] ?? null });
+    expect(clientIp(h({ "x-real-ip": "1.2.3.4", "x-forwarded-for": "9.9.9.9" }))).toBe("1.2.3.4");
+    expect(clientIp(h({ "x-forwarded-for": "5.6.7.8, 10.0.0.1" }))).toBe("5.6.7.8");
+    expect(clientIp(h({}))).toBe("desconocida");
+  });
+  it("la clave es anónima, estable y depende del secreto", () => {
+    const k = throttleKey("1.2.3.4", "secreto-de-prueba-largo-0123456789abcdef");
+    expect(k).toMatch(/^[0-9a-f]{64}$/);
+    expect(k).not.toContain("1.2.3.4");
+    expect(throttleKey("1.2.3.4", "secreto-de-prueba-largo-0123456789abcdef")).toBe(k);
+    expect(throttleKey("1.2.3.5", "secreto-de-prueba-largo-0123456789abcdef")).not.toBe(k);
+    expect(throttleKey("1.2.3.4", "otro-secreto-de-prueba-0123456789abcdefgh")).not.toBe(k);
   });
 });
