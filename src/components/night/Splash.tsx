@@ -37,7 +37,7 @@ export function Splash() {
 
   return (
     <div className="nv-splash" aria-hidden="true">
-      <Image src="/logo-night.png" alt="" width={667} height={327} priority className="nv-splash__logo" />
+      <Image src="/logo-splash.png" alt="" width={845} height={403} priority className="nv-splash__logo" />
     </div>
   );
 }

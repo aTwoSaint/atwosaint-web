@@ -7,6 +7,7 @@ import { idSchema } from "@/features/references/schema";
 import { ConfirmButton } from "../../ConfirmButton";
 import { AlbumForm } from "../AlbumForm";
 import { deleteAlbumAction, deleteTrackAction } from "../actions";
+import { DbUpgradeBanner } from "../DbUpgradeBanner";
 import { TrackEditForm } from "../TrackEditForm";
 import { TrackUploader } from "../TrackUploader";
 
@@ -28,6 +29,8 @@ export default async function EditAlbumPage({ params }: PageProps<"/admin/music/
           ← Música
         </Link>
       </div>
+
+      <DbUpgradeBanner />
 
       <div className="grid gap-16 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
         <section aria-labelledby="datos">

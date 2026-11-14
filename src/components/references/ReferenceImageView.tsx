@@ -6,6 +6,8 @@ type Props = {
   sizes: string;
   priority?: boolean;
   className?: string;
+  /** contain = la pieza se ve entera (Archives); cover = rellena y recorta. */
+  fit?: "cover" | "contain";
   onError?: () => void;
 };
 
@@ -18,6 +20,7 @@ export function ReferenceImageView({
   sizes,
   priority = false,
   className = "",
+  fit = "cover",
   onError,
 }: Props) {
   return (
@@ -30,7 +33,7 @@ export function ReferenceImageView({
       priority={priority}
       onError={onError}
       unoptimized={image.src.endsWith(".svg")}
-      className={`absolute inset-0 size-full object-cover ${className}`}
+      className={`absolute inset-0 size-full ${fit === "contain" ? "object-contain" : "object-cover"} ${className}`}
     />
   );
 }

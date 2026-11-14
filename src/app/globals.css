@@ -33,3 +33,18 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Selectores del panel de administración: mismos colores que el resto de campos
+   (antes el navegador los pintaba en gris con letras blancas). */
+select,
+select option {
+  background-color: var(--paper);
+  color: var(--ink);
+}
+select {
+  color-scheme: light dark;
+}
+select option:checked {
+  background-color: var(--ink);
+  color: var(--paper);
+}

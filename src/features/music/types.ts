@@ -60,6 +60,8 @@ export type Beat = {
   description?: string;
   /** AAAA-MM-DD */
   releasedOn?: string;
+  /** Cuándo se subió a la web (ISO). Ordena el catálogo: lo más nuevo primero. */
+  uploadedAt?: string;
   /** Enlace https de Traktrain de este beat; si falta, se usa el del proyecto o el perfil. */
   buyUrl?: string;
   /** Proyecto al que pertenece (solo informativo). */
