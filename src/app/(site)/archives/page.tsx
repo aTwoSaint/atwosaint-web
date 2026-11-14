@@ -9,9 +9,6 @@ export const metadata: Metadata = {
   description: "aTwoSaint archives: visual references on fashion, photography, art, design and urban culture.",
 };
 
-/** Cada cierto número de piezas se alterna un formato (ancho, alto, grande) para una cuadrícula asimétrica. */
-const SHAPES = ["", "nv-shape--tall", "", "nv-shape--wide", "", "", "nv-shape--tall", "", "nv-shape--big", ""];
-
 export default async function ArchivesPage() {
   const references = await getReferences();
   return (
@@ -28,10 +25,10 @@ export default async function ArchivesPage() {
       ) : (
         <ul className="nv-mosaic">
           {references.map((r, i) => (
-            <li key={r.id} className={`nv-tile-ref ${SHAPES[i % SHAPES.length]}`} style={{ "--i": Math.min(i, 12) } as React.CSSProperties}>
+            <li key={r.id} className="nv-tile-ref" style={{ "--i": Math.min(i, 12) } as React.CSSProperties}>
               <Link href={`/archives/${r.slug}`} className="nv-tile-ref__link">
                 <span className="nv-tile-ref__media">
-                  <ReferenceImageView image={r.image} sizes="(min-width:1100px) 25vw, (min-width:700px) 33vw, 50vw" priority={i < 4} />
+                  <ReferenceImageView fit="contain" image={r.image} sizes="(min-width:1100px) 25vw, (min-width:700px) 33vw, 50vw" priority={i < 4} />
                 </span>
                 <span className="nv-tile-ref__cap">
                   <span className="nv-tile-ref__title">{r.title}</span>

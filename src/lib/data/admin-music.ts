@@ -1,8 +1,10 @@
 import "server-only";
 import { asc, desc, eq, like, max } from "drizzle-orm";
+import { getTableColumns } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db";
 import { albums, images, tracks } from "@/lib/db/schema";
+import { isMissingColumn } from "@/lib/data/music";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import type { AlbumInput } from "@/features/music/schema";
 
@@ -71,11 +73,27 @@ export async function getAdminAlbum(
   const all = await listAdminAlbums();
   const album = all.find((a) => a.id === id);
   if (!album) return null;
-  const rows = await getDb()
-    .select()
-    .from(tracks)
-    .where(eq(tracks.albumId, id))
-    .orderBy(asc(tracks.position), asc(tracks.createdAt));
+  const db = getDb();
+  type TrackRow = typeof tracks.$inferSelect;
+  let rows: TrackRow[];
+  try {
+    rows = await db
+      .select()
+      .from(tracks)
+      .where(eq(tracks.albumId, id))
+      .orderBy(asc(tracks.position), asc(tracks.createdAt));
+  } catch (error) {
+    // Migración 0004 sin aplicar: el panel sigue abriendo (sin los campos nuevos) y avisa con un banner.
+    if (!isMissingColumn(error)) throw error;
+    const { slug: _s, bpm: _b, musicalKey: _k, description: _d, releasedOn: _r, ...legacy } = getTableColumns(tracks);
+    void [_s, _b, _k, _d, _r];
+    const old = await db
+      .select(legacy)
+      .from(tracks)
+      .where(eq(tracks.albumId, id))
+      .orderBy(asc(tracks.position), asc(tracks.createdAt));
+    rows = old.map((t) => ({ ...t, slug: null, bpm: null, musicalKey: null, description: null, releasedOn: null }));
+  }
   return {
     album,
     tracks: rows.map((t) => ({

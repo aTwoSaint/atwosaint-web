@@ -973,29 +973,19 @@ html[data-intro="leaving"] .nv-splash {
 .nv-mosaic {
   display: grid;
   width: min(100%, 1280px);
-  grid-auto-flow: dense;
-  grid-auto-rows: clamp(140px, 22vw, 230px);
   grid-template-columns: repeat(auto-fill, minmax(min(46%, 230px), 1fr));
   gap: clamp(8px, 1.4vw, 14px);
   margin: 0 auto 3rem;
   padding: 0 clamp(1rem, 4vw, 3rem);
   list-style: none;
 }
+/* Todas las piezas, mismo tamaño: la imagen se ve entera (sin recortar) y centrada en su marco. */
 .nv-tile-ref {
   position: relative;
   min-width: 0;
+  aspect-ratio: 1 / 1;
   animation: nv-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   animation-delay: calc(var(--i, 0) * 45ms);
-}
-.nv-shape--tall {
-  grid-row: span 2;
-}
-.nv-shape--wide {
-  grid-column: span 2;
-}
-.nv-shape--big {
-  grid-column: span 2;
-  grid-row: span 2;
 }
 .nv-tile-ref__link {
   position: absolute;
@@ -1011,9 +1001,9 @@ html[data-intro="leaving"] .nv-splash {
 }
 .nv-tile-ref__media {
   position: absolute;
-  inset: 0;
+  inset: 8% 8% 22%;
   display: block;
-  filter: grayscale(0.85) brightness(0.78) contrast(1.05);
+  filter: grayscale(0.7) brightness(0.85) contrast(1.05);
   transition:
     filter 0.5s,
     transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -1054,10 +1044,6 @@ html[data-intro="leaving"] .nv-splash {
 @media (max-width: 520px) {
   .nv-mosaic {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .nv-shape--wide,
-  .nv-shape--big {
-    grid-column: span 2;
   }
 }
 
@@ -1137,12 +1123,19 @@ html[data-intro="leaving"] .nv-splash {
   color: #c3d3c9;
   line-height: 1.7;
 }
+.nv-prose__body > p + p {
+  margin-top: 1.4rem;
+}
+.nv-prose__body .nv-buy {
+  margin-top: 1.25rem;
+}
 .nv-prose__lead {
   color: var(--n-text);
   font-size: clamp(1.15rem, 2.8vw, 1.5rem);
   line-height: 1.45;
 }
 .nv-prose__sign {
+  margin-top: 2rem;
   color: var(--n-green);
   font-family: var(--font-mono), monospace;
   letter-spacing: 0.06em;

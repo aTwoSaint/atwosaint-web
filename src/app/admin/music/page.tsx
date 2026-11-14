@@ -5,6 +5,7 @@ import { listAdminAlbums, type AdminAlbum } from "@/lib/data/admin-music";
 import { KIND_LABELS } from "@/features/music/types";
 import { ConfirmButton } from "../ConfirmButton";
 import { AlbumForm } from "./AlbumForm";
+import { DbUpgradeBanner } from "./DbUpgradeBanner";
 import { deleteAlbumAction, toggleAlbumStatusAction } from "./actions";
 
 const small = "font-mono text-xs uppercase tracking-widest underline-offset-8 hover:underline";
@@ -35,6 +36,8 @@ export default async function AdminMusicPage() {
         </div>
       </div>
 
+      <DbUpgradeBanner />
+
       {missing ? (
         <p role="alert" className="mb-10 max-w-2xl border border-accent-ink p-4 text-sm">
           Faltan las tablas de música en la base de datos. Abre el editor SQL de Neon y ejecuta el contenido del archivo{" "}
@@ -48,6 +51,10 @@ export default async function AdminMusicPage() {
           <h2 id="nuevo" className="mb-6 text-lg font-medium">
             Nuevo proyecto
           </h2>
+          <p className="mb-6 max-w-md text-sm text-muted">
+            Primero crea el proyecto (portada y datos). En la pantalla siguiente podrás subir los mp3/wav de cada beat con su
+            BPM, tonalidad y enlace de Traktrain.
+          </p>
           <AlbumForm />
         </section>
 

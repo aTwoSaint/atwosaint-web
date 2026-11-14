@@ -359,16 +359,6 @@ test.describe("Music", () => {
     await context.close();
   });
 
-  test("compartir sin menú del sistema copia el enlace del beat", async ({ browser }) => {
-    const { context, page } = await open(browser, VIEWPORTS.escritorio, { permissions: ["clipboard-read", "clipboard-write"] });
-    await page.addInitScript(() => Object.defineProperty(navigator, "share", { value: undefined }));
-    await page.goto("/music/demo-02");
-    await page.getByRole("button", { name: "Share Low Orbit (demo)" }).click();
-    await expect(page.getByText("Link copied")).toBeVisible();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/music\/demo-02$/);
-    await context.close();
-  });
-
   test("la página de un beat tiene metadatos para compartir", async ({ request }) => {
     const html = await (await request.get("/music/demo-02")).text();
     expect(html).toContain("Low Orbit (demo)");
@@ -386,12 +376,12 @@ test.describe("Home, Archives, About y contacto", () => {
     await context.close();
   });
 
-  test("Archives muestra todas las referencias en una cuadrícula asimétrica y abre su detalle", async ({ browser }) => {
+  test("Archives muestra todas las referencias en una cuadrícula de tamaño uniforme y abre su detalle", async ({ browser }) => {
     const { context, page } = await open(browser);
     await page.goto("/archives");
     await expect(page.locator(".nv-tile-ref")).toHaveCount(14);
     const sizes = await page.locator(".nv-tile-ref").evaluateAll((els) => els.map((e) => `${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)}`));
-    expect(new Set(sizes).size).toBeGreaterThan(2);
+    expect(new Set(sizes).size).toBe(1);
     await noOverflow(page);
     await page.locator(".nv-tile-ref__link").first().click();
     await expect(page).toHaveURL(/\/archives\/estudio-de-forma-001$/);

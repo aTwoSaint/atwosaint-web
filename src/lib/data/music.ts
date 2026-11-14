@@ -112,12 +112,14 @@ export async function getBeats(): Promise<Beat[]> {
           musicalKey: t.musicalKey ?? undefined,
           description: t.description ?? a.description ?? undefined,
           releasedOn: t.releasedOn ?? undefined,
+          uploadedAt: t.createdAt.toISOString(),
           buyUrl: t.buyUrl ?? a.buyUrl ?? undefined,
           collection: a.title,
         });
       }
     }
-    return out;
+    // Lo más nuevo primero: quien llega desde un Reel de un beat recién publicado lo ve el primero.
+    return out.sort((a, b) => (b.uploadedAt ?? "").localeCompare(a.uploadedAt ?? ""));
   } catch (error) {
     if (isMissingTable(error)) {
       console.warn("Music: faltan las tablas (aplica drizzle/0001_*.sql en Neon). Se muestra vacío.");

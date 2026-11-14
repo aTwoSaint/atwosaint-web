@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronIcon, ExternalIcon, PauseIcon, PlayIcon, ShareIcon } from "@/components/night/icons";
+import { ChevronIcon, ExternalIcon, PauseIcon, PlayIcon } from "@/components/night/icons";
 import { formatTime, useAudio, type PlayerTrack } from "@/features/audio/AudioProvider";
 import { resolveBuyUrl } from "@/features/music/links";
 import type { Beat } from "@/features/music/types";
@@ -31,7 +31,6 @@ export function MusicStage({ beats, initialSlug }: { beats: Beat[]; initialSlug?
   const start = Math.max(0, initialSlug ? beats.findIndex((b) => b.slug === initialSlug) : 0);
   const [index, setIndex] = useState(start);
   const [drag, setDrag] = useState(0);
-  const [note, setNote] = useState("");
   const audio = useAudio();
   const gesture = useRef<{ x: number; y: number; id: number; active: boolean } | null>(null);
   const moved = useRef(false);
@@ -124,20 +123,6 @@ export function MusicStage({ beats, initialSlug }: { beats: Beat[]; initialSlug?
   };
   const onWheel = (e: React.WheelEvent) => {
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 24) go(index + (e.deltaX > 0 ? 1 : -1));
-  };
-
-  const share = async () => {
-    const url = `${window.location.origin}/music/${beat.slug}`;
-    try {
-      if (navigator.share) await navigator.share({ title: beat.title, text: `${beat.title} — aTwoSaint`, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        setNote("Link copied");
-        window.setTimeout(() => setNote(""), 2200);
-      }
-    } catch {
-      /* el usuario canceló */
-    }
   };
 
   const meta = [
@@ -301,10 +286,6 @@ export function MusicStage({ beats, initialSlug }: { beats: Beat[]; initialSlug?
           >
             BUY BEAT <ExternalIcon width={18} height={18} />
           </a>
-          <button type="button" className="nv-ghost" onClick={share} aria-label={`Share ${beat.title}`}>
-            <ShareIcon width={18} height={18} />
-            <span>{note || "Share"}</span>
-          </button>
         </div>
       </div>
     </section>

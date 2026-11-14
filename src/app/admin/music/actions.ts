@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/session";
 import { getBlobEnv } from "@/lib/config/env";
+import { applyUpgrades } from "@/lib/data/db-upgrade";
 import {
   addTrack,
   createAlbum,
@@ -244,4 +245,17 @@ export async function updateTrackAction(_prev: ActionState, formData: FormData):
   }
   refreshPublicPages();
   return { ok: true, values };
+}
+
+/** Aplica los cambios pendientes de la base de datos (idempotentes y solo aditivos). */
+export async function upgradeDatabaseAction(): Promise<void> {
+  await requireAdmin();
+  try {
+    await applyUpgrades();
+  } catch (e) {
+    console.error("Error al actualizar la base de datos", e);
+    throw new Error("No se ha podido actualizar la base de datos. Mira el registro de Vercel.");
+  }
+  refreshPublicPages();
+  revalidatePath("/admin/music", "layout");
 }
