@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://atwosaint-web.vercel.app"),
   title: {
     default: "aTwoSaint",
-    template: "%s — aTwoSaint",
+    template: "aTwoSaint",
   },
   description: "aTwoSaint — independent hip-hop production, sound and visual identity.",
   openGraph: { siteName: "aTwoSaint", type: "website", images: [{ url: "/logo-night.png", width: 667, height: 327 }] },

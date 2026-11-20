@@ -5,7 +5,7 @@ import { AboutIcon, ArchiveIcon, HouseIcon, MusicIcon } from "@/components/night
 import { SiteFooter } from "@/components/night/SiteFooter";
 
 export const metadata: Metadata = {
-  title: { absolute: "aTwoSaint — Beats, sound & visual identity" },
+  title: { absolute: "aTwoSaint" },
   description: "aTwoSaint: independent hip-hop production, sound and visual identity. Listen to the beats and get a license.",
 };
 
