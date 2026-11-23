@@ -10,7 +10,7 @@ export const site = {
   emailCompose: "https://mail.google.com/mail/?view=cm&to=atwosaint2%40gmail.com",
   traktrain: "https://traktrain.com/atwosaint",
   socials: {
-    instagram: "https://www.instagram.com/atwosaint_/",
+    instagram: "https://www.instagram.com/atwosaint/",
     youtube: "https://www.youtube.com/@atwosaint2",
     tiktok: "https://www.tiktok.com/@atwosaint",
   },
