@@ -9,7 +9,7 @@ const VIEWPORTS = {
 } as const;
 
 const OFFICIAL = {
-  instagram: "https://www.instagram.com/atwosaint_/",
+  instagram: "https://www.instagram.com/atwosaint/",
   youtube: "https://www.youtube.com/@atwosaint2",
   tiktok: "https://www.tiktok.com/@atwosaint",
   traktrain: "https://traktrain.com/atwosaint",

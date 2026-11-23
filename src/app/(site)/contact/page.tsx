@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 const links = [
   { label: "Email", detail: site.email, href: site.emailCompose, Icon: MailIcon },
-  { label: "Instagram", detail: "@atwosaint_", href: site.socials.instagram, Icon: InstagramIcon },
+  { label: "Instagram", detail: "@atwosaint", href: site.socials.instagram, Icon: InstagramIcon },
   { label: "YouTube", detail: "@atwosaint2", href: site.socials.youtube, Icon: YouTubeIcon },
   { label: "TikTok", detail: "@atwosaint", href: site.socials.tiktok, Icon: TikTokIcon },
   { label: "Traktrain", detail: "traktrain.com/atwosaint", href: site.traktrain, Icon: TraktrainIcon },
